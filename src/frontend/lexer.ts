@@ -3,6 +3,7 @@ import { error, ErrorType } from './error';
 export const enum TokenType {
   // Types
   Number,
+  String,
   Identifier,
 
   // Operators
@@ -30,6 +31,7 @@ export const enum TokenType {
   Funcion,
   Si,
   Entonces,
+  Retorna,
 }
 
 // reserved keywords
@@ -39,6 +41,7 @@ const KEYWORDS: Record<string, TokenType> = {
   funcion: TokenType.Funcion,
   si: TokenType.Si,
   entonces: TokenType.Entonces,
+  retorna: TokenType.Retorna,
 };
 
 export interface Token {
@@ -67,6 +70,16 @@ function isSkippable(src: string) {
   return src == ' ' || src == '\n' || src == '\t' || src == '\r';
 }
 
+function getString(src: string[], quote: string = '"') {
+  let str = '';
+  src.shift();
+  while (src.length > 0 && src[0] != quote) {
+    str += src.shift();
+  }
+  src.shift();
+  return token(str, TokenType.String);
+}
+
 // Tokenize the source code
 export function tokenize(sourceCode: string): Token[] {
   const tokens: Token[] = [];
@@ -89,7 +102,8 @@ export function tokenize(sourceCode: string): Token[] {
       src[0] == '-' ||
       src[0] == '*' ||
       src[0] == '/' ||
-      src[0] == '%'
+      src[0] == '%' ||
+      src[0] == '^'
     )
       tokens.push(token(src.shift(), TokenType.BinaryOperator));
     else if (src[0] == '=') tokens.push(token(src.shift(), TokenType.Equals));
@@ -101,6 +115,8 @@ export function tokenize(sourceCode: string): Token[] {
     else if (src[0] == ':') tokens.push(token(src.shift(), TokenType.Colon));
     else if (src[0] == ',') tokens.push(token(src.shift(), TokenType.Comma));
     else if (src[0] == '.') tokens.push(token(src.shift(), TokenType.Dot));
+    else if (src[0] == '"') tokens.push(getString(src));
+    else if (src[0] == "'") tokens.push(getString(src, "'"))
     else {
       if (isInt(src[0])) {
         let num = '';
@@ -125,7 +141,7 @@ export function tokenize(sourceCode: string): Token[] {
           ErrorType.InvalidSyntax,
           0,
           0,
-          `Unrecognized character found in source: ${src[0]}`
+          `Caracter "${src[0]}" no funciono en el analizador lexico`
         );
     }
   }

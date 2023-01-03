@@ -1,7 +1,7 @@
-import { FunctionDeclaration, IfStatement, Program, VarDeclaration } from '../../frontend/ast';
+import { FunctionDeclaration, IfStatement, Program, ReturnStatement, VarDeclaration } from '../../frontend/ast';
 import Environment from '../environment';
 import { evaluate } from '../interpreter';
-import { MK_FUNCTION, MK_NULL, RuntimeVal } from '../values';
+import { BooleanVal, MK_BOOLEAN, MK_FUNCTION, MK_NULL, MK_RETURN, MK_VOID, RuntimeVal } from '../values';
 
 export function eval_program(program: Program, env: Environment): RuntimeVal {
   let lastEvaluated: RuntimeVal = MK_NULL();
@@ -35,5 +35,22 @@ export function eval_if_statement(
   statement: IfStatement,
   env: Environment
 ): RuntimeVal {
+  let condition = evaluate(statement.condition, env) as BooleanVal;
+  if (condition.type !== 'booleano')condition = MK_BOOLEAN(condition.value)
+
+  if (condition.value) {
+    return evaluate(statement.body, env);
+  } else if (statement.else){
+    return evaluate(statement.else, env);
+  }
+
   return MK_NULL();
+}
+
+export function eval_return_statement(
+  statement: ReturnStatement,
+  env: Environment
+): RuntimeVal {
+  const value = statement.value ? evaluate(statement.value, env) : MK_VOID();
+  return MK_RETURN(value);
 }

@@ -4,6 +4,7 @@ export const enum ErrorType {
   DivisionByZero,
   InvalidToken,
   InvalidSyntax,
+  InvalidType,
   VariableAlreadyDeclared,
   UndefinedVariable,
   ConstantAssignment
@@ -20,31 +21,34 @@ export function error(type: ErrorType, line: number, column: number, message: st
   let typeError = 'Error';
   switch (type) {
     case ErrorType.DivisionByZero:
-      typeError = 'MathError';
-      message ||= 'Division by zero';
+      typeError = 'ErrorMatematico';
+      message ||= 'No se puede dividir entre cero';
       break;
     case ErrorType.InvalidToken:
-      typeError = 'SyntaxError';
-      message ||= 'Invalid token';
+      typeError = 'ErrorSintactico';
+      message ||= 'Token invalido';
       break;
     case ErrorType.InvalidSyntax:
-      typeError = 'SyntaxError';
-      message ||= 'Invalid syntax';
+      typeError = 'ErrorSintactico';
+      message ||= 'Sintaxis invalida';
       break;
     case ErrorType.VariableAlreadyDeclared:
-      typeError = 'RuntimeError';
-      message ||= 'Variable already declared';
+      typeError = 'ErrorEjecucion';
+      message ||= 'Variable ya declarada';
       break;
     case ErrorType.UndefinedVariable:
-      typeError = 'RuntimeError';
-      message ||= 'Variable is not defined';
+      typeError = 'ErrorEjecucion';
+      message ||= 'Variable no definida';
       break;
     case ErrorType.ConstantAssignment:
-      typeError = 'RuntimeError';
-      message ||= 'Cannot assign to constant';
+      typeError = 'ErrorEjecucion';
+      message ||= 'No se puede reasignar una constante';
       break;
+    case ErrorType.InvalidType:
+      typeError = 'ErrorTipos';
+      message ||= 'Tipo invalido';
     default:
-      message ||= 'Unknown error';
+      message ||= 'Error desconocido';
       break;
   }
   console.error(`${(colors.redBright as unknown as Function)('error')} ${typeError}:\n  ${message}`);

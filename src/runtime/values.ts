@@ -1,15 +1,17 @@
-import { Stmt } from "../frontend/ast";
+import { ReturnStatement, Stmt } from "../frontend/ast";
 import Environment from "./environment";
 
 export type PrimitiveType = 'nulo' | 'numero' | 'booleano' | 'void' | 'cadena';
 export type ComplexType = 'object' | 'function';
+export type InternalType = 'property' | 'return';
 
 export interface ValueFamily {
   primitive: PrimitiveType;
   complex: ComplexType;
+  internal: InternalType;
 }
 
-export type ValueType = PrimitiveType | ComplexType;
+export type ValueType = PrimitiveType | ComplexType | InternalType;
 
 export interface RuntimeVal {
   type: ValueFamily[this['family']];
@@ -31,7 +33,7 @@ export interface NullVal extends PrimitiveVal {
 }
 
 export function MK_NULL(): NullVal {
-  return MK_PRIMITIVE('nulo', null) as NullVal;
+  return MK_PRIMITIVE(null, 'nulo') as NullVal;
 }
 
 export interface NumberVal extends PrimitiveVal {
@@ -57,6 +59,15 @@ export function MK_BOOLEAN(value = false): BooleanVal {
   return MK_PRIMITIVE(value, 'booleano') as BooleanVal;
 }
 
+export interface StringVal extends PrimitiveVal {
+  type: 'cadena';
+  value: string;
+}
+
+export function MK_STRING(value = ''): StringVal {
+  return MK_PRIMITIVE(value, 'cadena') as StringVal;
+}
+
 export interface ComplexVal extends RuntimeVal {
   family: 'complex';
 }
@@ -70,8 +81,25 @@ export interface ObjectVal extends ComplexVal {
   properties: Map<string, RuntimeVal>;
 }
 
-export function MK_OBJECT(properties: Map<string, RuntimeVal>): ObjectVal {
-  return MK_COMPLEX({ type: 'object', properties }) as ObjectVal;
+export function MK_OBJECT(prop: {[key:string]:RuntimeVal}={}): ObjectVal {
+  return MK_COMPLEX({ type: 'object', properties: new Map(Object.entries(prop)) }) as ObjectVal;
+}
+
+export interface InternalVal extends RuntimeVal {
+  family: 'internal';
+}
+
+export function MK_INTERNAL(value:{type: InternalType, [key:string]:any}): InternalVal {
+  return { ...value, family: 'internal' };
+}
+
+export interface ObjectPropVal extends InternalVal{
+  type: 'property';
+  symbol: string;
+}
+
+export function MK_PROPERTY(value: string): ObjectPropVal {
+  return MK_INTERNAL({ type: 'property', value}) as ObjectPropVal;
 }
 
 export interface FunctionVal extends ComplexVal {
@@ -100,11 +128,11 @@ export function MK_VOID(): VoidVal {
   return MK_PRIMITIVE(null, 'void') as VoidVal;
 }
 
-export interface StringVal extends PrimitiveVal {
-  type: 'cadena';
-  value: string;
+export interface ReturnVal extends InternalVal {
+  type: 'return';
+  value: RuntimeVal;
 }
 
-export function MK_STRING(value = ''): StringVal {
-  return MK_PRIMITIVE(value, 'cadena') as StringVal;
+export function MK_RETURN(value: RuntimeVal): ReturnVal {
+  return MK_INTERNAL({ type: 'return', value}) as ReturnVal;
 }

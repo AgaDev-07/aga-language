@@ -1,5 +1,11 @@
-def a = 1;
-def b = 2;
+funcion test(n){
+  si (n==1) {
+    retorna "uno";
+  } entonces si (n==2){
+    retorna "dos";
+  }entonces{
+    retorna "nada";
+  }
+}
 
-pintar(a, b)
-pintar(a == b)
+pintar(test(2))

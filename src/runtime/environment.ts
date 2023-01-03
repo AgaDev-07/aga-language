@@ -7,32 +7,21 @@ import {
   RuntimeVal,
 } from './values';
 
-function setupGlobalScope(env: Environment): void {
-  env.declareVar('pi', MK_NUMBER(3.14159));
-  env.declareVar('e', MK_NUMBER(2.71828));
-  env.declareVar('nulo', MK_NULL(), true);
-  env.declareVar('falso', MK_BOOLEAN(false), true);
-  env.declareVar('verdadero', MK_BOOLEAN(true), true);
-  env.declareVar(
-    'pintar',
-    MK_FUNCTION(['value'], [], env, function () {
-      console.log(...arguments);
-    })
-  );
-}
-
+import definition from './global/definition';
 export default class Environment {
+  static getGlobalScope(): Environment {
+    const env = new Environment();
+    definition(env);
+    return env;
+  }
   private parent?: Environment;
   private variables: Map<string, RuntimeVal>;
   private constants: Set<string>;
 
   constructor(parentENV?: Environment) {
-    const globalScope = !parentENV;
     this.parent = parentENV;
     this.variables = new Map();
     this.constants = new Set();
-
-    if (globalScope) setupGlobalScope(this);
   }
 
   public declareVar(
@@ -45,7 +34,7 @@ export default class Environment {
         ErrorType.VariableAlreadyDeclared,
         0,
         0,
-        `Variable '${name}' has already been declared`
+        `Variable '${name}' ya ha sido declarada`
       );
     if (constant) this.constants.add(name);
     this.variables.set(name, value);
@@ -59,7 +48,7 @@ export default class Environment {
         ErrorType.ConstantAssignment,
         0,
         0,
-        `Variable '${name}' is a constant and cannot be assigned`
+        `Variable '${name}' es una constante y no puede ser modificada`
       );
     env.variables.set(name, value);
     return value;
@@ -77,7 +66,7 @@ export default class Environment {
       ErrorType.VariableAlreadyDeclared,
       0,
       0,
-      `Variable '${name}' has not been declared`
+      `Variable '${name}' no ha sido declarada`
     );
   }
 }

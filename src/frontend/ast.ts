@@ -7,6 +7,7 @@ export type NodeType =
   // Statements
   | 'Program'
   | 'VarDeclaration'
+  | 'ReturnStatement'
   | BlockType
 
   // Expressions
@@ -18,7 +19,9 @@ export type NodeType =
   | 'Property'
   | 'ObjectLiteral'
   | 'NumericLiteral'
+  | 'StringLiteral'
   | 'Identifier'
+  | 'PropertyIdentifier'
   | 'BinaryExpr';
 
 // TODO:[ 'CallExpr', 'UnaryExpr', 'FunctionDeclaration' ]
@@ -93,9 +96,19 @@ export interface Identifier extends Expr {
   symbol: string;
 }
 
+export interface PropertyIdentifier extends Expr {
+  kind: 'PropertyIdentifier';
+  symbol: string;
+}
+
 export interface NumericLiteral extends Expr {
   kind: 'NumericLiteral';
   value: number;
+}
+
+export interface StringLiteral extends Expr {
+  kind: 'StringLiteral';
+  value: string;
 }
 
 export interface Property extends Expr {
@@ -107,4 +120,9 @@ export interface Property extends Expr {
 export interface ObjectLiteral extends Expr {
   kind: 'ObjectLiteral';
   properties: Property[];
+}
+
+export interface ReturnStatement extends Stmt {
+  kind: 'ReturnStatement';
+  value?: Expr;
 }
