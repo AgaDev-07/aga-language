@@ -33,23 +33,15 @@ export class Properties extends Map<string, RuntimeVal> {
   }
   private default = {
     __pintar__: () => {
-      if (this.type == 'objeto') {
-        let keys = [...this.keys()];
-        if (keys.length == 0) return {};
-        let entries = keys.map(key => [key, this.get(key).__pintar__()]);
-        return Object.fromEntries(entries);
-      }
-      if (this.type == 'funcion') return Colors.cyan('[Funcion]');
-      if (this.type == 'lista') {
-        let entries = [...this.values()].map(value => value.__pintar__());
-        return entries;
-      }
       return 'indefinido';
     },
     aCadena: () => MK_STRING(),
   };
   get(key: string) {
     return super.get(key) || this.default[key] || MK_NULL();
+  }
+  setDefault(key: string, value: RuntimeVal) {
+    this.default[key] = value;
   }
   setAll(entries: [string, RuntimeVal][]) {
     entries.forEach(([key, value]) => this.set(key, value));

@@ -13,6 +13,7 @@ import { MK_NUMBER } from '../values/primitive';
 function pintar() {
   const args = [...arguments] as RuntimeVal[];
   const values = args.map(arg => arg.__pintar__());
+  
   console.log(...values);
 }
 

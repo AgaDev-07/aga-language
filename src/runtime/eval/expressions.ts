@@ -251,15 +251,8 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
     error(ErrorType.InvalidSyntax, 0, 0, `${nameFunction} no es una funcion`);
 
   const args = node.args.map(arg => evaluate(arg, env));
-  const calleeEnv = callee.env();
-  callee.params.forEach((param, i) => {
-    calleeEnv.declareVar(param, args[i] || MK_NULL());
-  });
 
-  let value;
-
-  if (callee.native) value = callee.native.call(thisValue, ...args);
-  else value = evaluate(callee.body, calleeEnv);
+  let value = callee.execute.call(thisValue, ...args);
 
   return value || MK_VOID();
 }

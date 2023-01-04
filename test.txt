@@ -1,0 +1,2 @@
+
+modulo.exporta = 2

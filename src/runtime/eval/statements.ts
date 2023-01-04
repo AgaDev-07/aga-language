@@ -13,7 +13,7 @@ export function eval_program(program: Program, env: Environment): RuntimeVal {
     lastEvaluated = evaluate(stmt, env);
   }
 
-  return lastEvaluated;
+  return env.lookupVar('modulo');
 }
 
 export function eval_var_declaration(

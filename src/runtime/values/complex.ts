@@ -1,8 +1,26 @@
-import { ArrayLiteral, BinaryExpr, CallExpr, ElseStatement, FunctionDeclaration, Identifier, IfStatement, MemberExpr, NumericLiteral, ObjectLiteral, Property, PropertyIdentifier, ReturnStatement, Stmt, StringLiteral, VarDeclaration } from '../../frontend/ast';
+import {
+  ArrayLiteral,
+  BinaryExpr,
+  CallExpr,
+  ElseStatement,
+  FunctionDeclaration,
+  Identifier,
+  IfStatement,
+  MemberExpr,
+  NumericLiteral,
+  ObjectLiteral,
+  Property,
+  PropertyIdentifier,
+  ReturnStatement,
+  Stmt,
+  StringLiteral,
+  VarDeclaration,
+} from '../../frontend/ast';
 import Environment from '../environment';
+import { evaluate } from '../interpreter';
 import { RuntimeVal } from '../values';
 import { Colors, Properties } from './internal';
-import { MK_STRING } from './primitive';
+import { MK_NULL, MK_STRING } from './primitive';
 
 class Complex implements RuntimeVal {
   family: 'complex' = 'complex';
@@ -14,14 +32,18 @@ class Complex implements RuntimeVal {
     public parent?: Function,
     values?: any
   ) {
-    this.properties.setAll(Object.entries({ ...Complex.props, ...properties }));
+    let props = Object.entries<RuntimeVal>({ ...Complex.props, ...properties });
+    props.forEach(([key, value]) => {
+      this.properties.setDefault(key, value);
+    })
+
     for (let [key, value] of Object.entries(values || {})) {
       this[key] = value;
     }
   }
   __pintar__() {
-    let pintar = this.properties.get('__pintar__');
-    return pintar.native.call(this);
+    let pintar = this.properties.get('__pintar__') as FunctionVal;
+    return pintar.execute.call(this);
   }
 }
 
@@ -30,7 +52,7 @@ Complex.props = {
     let obj = {};
     for (let [key, value] of this.properties) {
       if (key.startsWith('__') && key.endsWith('__')) continue;
-      obj[key] = value.__pintar__();
+      if (value && value.__pintar__) obj[key] = value.__pintar__();
     }
     return obj;
   }),
@@ -79,7 +101,7 @@ function unParse(stmt: Stmt): string {
       let code = func.body.map(unParse).join('\n  ');
       let name = func.identifier;
       let params = func.params.join(', ');
-      return `funcion ${name}(${params}){${code?`\n  ${code}\n`: ''}}`;
+      return `funcion ${name}(${params}){${code ? `\n  ${code}\n` : ''}}`;
     case 'ElseStatement':
       let elseStmt = stmt as ElseStatement;
       let elseCode = elseStmt.body.map(unParse).join('\n  ');
@@ -96,7 +118,7 @@ function unParse(stmt: Stmt): string {
       return `${unParse(assign.left)} = ${unParse(assign.right)}`;
     case 'ArrayLiteral':
       let arr = stmt as ArrayLiteral;
-      let elems = arr.properties.map((prop) => unParse(prop)).join(', ');
+      let elems = arr.properties.map(prop => unParse(prop)).join(', ');
       return `[${elems}]`;
 
     default:
@@ -111,15 +133,18 @@ function MK_FUNCTION_PROPS(useProps: boolean) {
           __pintar__: MK_FUNCTION_NATIVE(function () {
             return Colors.cyan(`[Funcion: ${this.name || '<anonima>'}]`);
           }),
-          aCadena: MK_FUNCTION_NATIVE(function () {
-            let code = (this as FunctionVal).body
-              .map(unParse)
-              .join('\n  ');
-            let name = (this as FunctionVal).properties.get('name').value || '';
-            let str = `funcion ${name}(${this.params.join(', ')}){${code?`\n  ${code}\n`: this.native ? '[codigo nativo]' : ''}}`;
-            console.log(this);
-            return MK_STRING(str);
-          }, { name: MK_STRING('aCadena')}),
+          aCadena: MK_FUNCTION_NATIVE(
+            function () {
+              let code = (this as FunctionVal).body.map(unParse).join('\n  ');
+              let name =
+                (this as FunctionVal).properties.get('name').value || '';
+              let str = `funcion ${name}(${this.params.join(', ')}){${
+                code ? `\n  ${code}\n` : this.native ? '[codigo nativo]' : ''
+              }}`;
+              return MK_STRING(str);
+            },
+            { name: MK_STRING('aCadena') }
+          ),
           __typeof__: MK_FUNCTION_NATIVE(() => MK_STRING('funcion')),
           name: MK_STRING(''),
         }
@@ -129,14 +154,35 @@ function MK_FUNCTION_PROPS(useProps: boolean) {
 
 function MK_ARRAY_PROPS() {
   return {
-    __pintar__: MK_FUNCTION_NATIVE(function () {
+    __pintar__: MK_FUNCTION_NATIVE(function (this: ArrayVal) {
       let list = [];
-      for (let [key, value] of this.properties) {
+      let props = [...this.properties.entries()].sort((a, b) => {
+        let aNum = +a;
+        let bNum = +b;
+        if (aNum == aNum && bNum == bNum) return aNum - bNum;
+        return a[0] < b[0] ? -1 : 1;
+      });
+      for (let [key, value] of props) {
         if (key.startsWith('__') && key.endsWith('__')) continue;
-        list.push(value.__pintar__());
+        if (+key == +key) list.push(value.__pintar__());
+        else list[key] = value.__pintar__();
       }
       return list;
     }),
+    agregar: MK_FUNCTION_NATIVE(
+      function (this: ArrayVal, value: RuntimeVal) {
+        let e = [...this.properties.keys()]
+        .map(v => +v)
+        .filter(v => v == v)
+        .sort((a, b) => a - b)
+        .pop()
+        let index = e == undefined ? 0 : e + 1;
+        this.properties.set(index.toString(), value);
+        return this;
+      },
+      { name: MK_STRING('Lista.Agregar') },
+      true
+    ),
     __typeof__: MK_FUNCTION_NATIVE(() => MK_STRING('lista')),
   };
 }
@@ -151,7 +197,7 @@ export interface ComplexVal extends Complex {}
 
 export function MK_COMPLEX(
   type: ComplexType,
-  properties: entries,
+  properties: entries = {},
   parent?: Function,
   values?: any
 ): ComplexVal {
@@ -163,7 +209,11 @@ export interface ObjectVal extends ComplexVal {
 }
 
 export function MK_OBJECT(prop: { [key: string]: RuntimeVal } = {}): ObjectVal {
-  return MK_COMPLEX('objeto', prop) as ObjectVal;
+  let obj = MK_COMPLEX('objeto');
+  for (let key in prop) {
+    obj.properties.set(key, prop[key]);
+  }
+  return obj as ObjectVal;
 }
 
 export interface ExtendsObjectVal extends ComplexVal {
@@ -196,6 +246,7 @@ export interface FunctionVal extends ComplexVal {
   env: () => Environment;
   native?: Function;
   name?: string;
+  execute: (...args: RuntimeVal[]) => RuntimeVal;
 }
 
 export function MK_FUNCTION_NATIVE(
@@ -214,18 +265,27 @@ export function MK_FUNCTION(
   native?: Function,
   useProps = true
 ): FunctionVal {
+  let values = {
+    execute(this: FunctionVal, ...args: RuntimeVal[]) {
+      const calleeEnv = values.env();
+      values.params.forEach((param, i) => {
+        calleeEnv.declareVar(param, args[i] || MK_NULL());
+      });
+
+      return native ? native.call(this, ...args) : evaluate(body, calleeEnv);
+    },
+    params,
+    body,
+    env() {
+      return new Environment(env);
+    },
+    native,
+  };
   return MK_COMPLEX(
     'funcion',
     { ...MK_FUNCTION_PROPS(useProps), ...prop },
     undefined,
-    {
-      params,
-      body,
-      env() {
-        return new Environment(env);
-      },
-      native,
-    }
+    values
   ) as FunctionVal;
 }
 
