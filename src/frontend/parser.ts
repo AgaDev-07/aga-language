@@ -13,6 +13,7 @@ import {
   MemberExpr,
   ElseStatement,
   StringLiteral,
+  ArrayLiteral,
 } from './ast';
 import { tokenize, Token, TokenType } from './lexer';
 import { error, ErrorType } from './error';
@@ -228,7 +229,7 @@ export default class Parser {
 
   private parse_object_expr(): Expr {
     if (this.at().type != TokenType.OpenBrace)
-      return this.parse_additive_expr();
+      return this.parse_array_expr();
 
     this.eat(); // Advance the open brace token
     const properties: Property[] = [];
@@ -260,6 +261,29 @@ export default class Parser {
     }
     this.expect(TokenType.CloseBrace, 'No se encontró llave de cierre');
     return { kind: 'ObjectLiteral', properties } as ObjectLiteral;
+  }
+
+  private parse_array_expr(): Expr {
+    if (this.at().type != TokenType.OpenBracket)
+      return this.parse_additive_expr();
+
+      this.eat(); // Advance the open brace token
+      const properties: Property[] = [];
+
+      while (this.not_eof() && this.at().type != TokenType.CloseBracket) {
+        let key = properties.length.toString();
+        const value = this.parse_expr();
+        properties.push({ key, value, kind: 'Property' });
+        if (this.at().type != TokenType.CloseBracket) {
+          this.expect(
+            TokenType.Comma,
+            'No se encontró coma en la lista'
+          );
+        }
+      }
+
+      this.expect(TokenType.CloseBracket, 'No se encontró llave de cierre');
+      return { kind: 'ArrayLiteral', properties } as ArrayLiteral;
   }
 
   private parse_additive_expr(): Expr {

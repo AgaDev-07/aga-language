@@ -1,7 +1,10 @@
 import { FunctionDeclaration, IfStatement, Program, ReturnStatement, VarDeclaration } from '../../frontend/ast';
 import Environment from '../environment';
 import { evaluate } from '../interpreter';
-import { BooleanVal, MK_BOOLEAN, MK_FUNCTION, MK_NULL, MK_RETURN, MK_VOID, RuntimeVal } from '../values';
+import { RuntimeVal } from '../values';
+import { MK_FUNCTION } from '../values/complex';
+import { MK_RETURN } from '../values/internal';
+import { MK_NULL, BooleanVal, MK_BOOLEAN, MK_VOID, MK_STRING } from '../values/primitive';
 
 export function eval_program(program: Program, env: Environment): RuntimeVal {
   let lastEvaluated: RuntimeVal = MK_NULL();
@@ -27,7 +30,9 @@ export function eval_function_declaration(
   declaration: FunctionDeclaration,
   env: Environment
 ): RuntimeVal {
-  const value = MK_FUNCTION(declaration.params, declaration.body, env)
+  const value = MK_FUNCTION(declaration.params, declaration.body, env, {
+    name: MK_STRING(declaration.identifier || ''),
+  })
   return env.declareVar(declaration.identifier, value);
 }
 

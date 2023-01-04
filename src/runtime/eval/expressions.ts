@@ -1,4 +1,5 @@
 import {
+  ArrayLiteral,
   AssignmentExpr,
   BinaryExpr,
   CallExpr,
@@ -8,28 +9,25 @@ import {
   NumericLiteral,
   ObjectLiteral,
   PropertyIdentifier,
+  StringLiteral,
 } from '../../frontend/ast';
 import { error, ErrorType } from '../../frontend/error';
 import Environment from '../environment';
 import { evaluate } from '../interpreter';
+import { RuntimeVal } from '../values';
+import { ComplexVal, FunctionVal, MK_ARRAY, MK_OBJECT, ObjectVal } from '../values/complex';
+import { MK_PROPERTY } from '../values/internal';
 import {
-  NumberVal,
-  RuntimeVal,
-  MK_NUMBER,
-  MK_NULL,
-  MK_NAN,
-  ObjectVal,
-  FunctionVal,
-  MK_BOOLEAN,
   PrimitiveVal,
+  MK_NULL,
+  MK_NUMBER,
+  MK_BOOLEAN,
+  NumberVal,
+  MK_STRING,
   MK_VOID,
   StringVal,
-  MK_STRING,
-  MK_OBJECT,
-  MK_PROPERTY,
-  ObjectPropVal,
-  ReturnVal,
-} from '../values';
+  MK_NAN,
+} from '../values/primitive';
 
 export function eval_condition_binary_expr(
   lhs: PrimitiveVal,
@@ -84,10 +82,11 @@ export function eval_numeric_binary_expr(
 
 function parse(value: PrimitiveVal, type: string): RuntimeVal {
   if (value.type == type) return value;
-  if (value.type == 'numero') return MK_NUMBER(value.value);
-  if (value.type == 'booleano') return MK_BOOLEAN(value.value);
-  if (value.type == 'nulo') return MK_NULL();
-  if (value.type == 'void') return MK_VOID();
+  if (type == 'cadena') return MK_STRING(value.value);
+  if (type == 'numero') return MK_NUMBER(value.value);
+  if (type == 'booleano') return MK_BOOLEAN(value.value);
+  if (type == 'nulo') return MK_NULL();
+  if (type == 'void') return MK_VOID();
   return MK_NULL();
 }
 function isNaN(value: PrimitiveVal): boolean {
@@ -101,7 +100,7 @@ export function eval_string_binary_expr(
   operator: string
 ): RuntimeVal {
   if (operator == '+') return MK_STRING(lhs.value + rhs.value);
-  return MK_NULL();
+  error(ErrorType.InvalidOperation, 0, 0, 'No se puede operar con cadenas');
 }
 
 export function eval_parse_binary_expr(
@@ -109,7 +108,13 @@ export function eval_parse_binary_expr(
   rhs: PrimitiveVal,
   operator: string
 ): RuntimeVal {
-  if (lhs.family != 'primitive' || rhs.family != 'primitive') return MK_NULL();
+  if (lhs.family != 'primitive' || rhs.family != 'primitive')
+    error(
+      ErrorType.InvalidOperation,
+      0,
+      0,
+      'No se puede operar con valores complejos'
+    );
 
   const hasNumber = lhs.type == 'numero' || rhs.type == 'numero';
   const hasString = lhs.type == 'cadena' || rhs.type == 'cadena';
@@ -120,8 +125,13 @@ export function eval_parse_binary_expr(
     if (isNaN(lVal) || isNaN(rVal)) return MK_NAN();
     return eval_numeric_binary_expr(lVal, rVal, operator);
   }
+  if (hasString) {
+    let lVal = parse(lhs, 'cadena') as StringVal;
+    let rVal = parse(rhs, 'cadena') as StringVal;
+    return eval_string_binary_expr(lVal, rVal, operator);
+  }
 
-  return MK_NULL();
+  error(ErrorType.InvalidOperation, 0, 0, `No se puede operar con ${lhs.type}`);
 }
 
 export function eval_binary_expr(
@@ -176,7 +186,7 @@ export function eval_assignment(
       (node.assignee as MemberExpr).object,
       env
     ) as ObjectVal;
-    if (obj.type !== 'object')
+    if (obj.family != 'complex')
       error(
         ErrorType.InvalidSyntax,
         0,
@@ -199,7 +209,7 @@ export function eval_assignment(
 }
 
 export function eval_object_expr(
-  obj: ObjectLiteral,
+  obj: ObjectLiteral | ArrayLiteral,
   env: Environment
 ): RuntimeVal {
   const object = {};
@@ -210,6 +220,7 @@ export function eval_object_expr(
       object[key] = runtimeVal;
     }
   }
+  if (obj.kind == 'ArrayLiteral') return MK_ARRAY(object);
   return MK_OBJECT(object);
 }
 
@@ -218,15 +229,6 @@ export function eval_member_expr(
   env: Environment
 ): RuntimeVal {
   const obj = evaluate(node.object, env) as ObjectVal;
-  if (obj.type != 'object')
-    error(
-      ErrorType.InvalidSyntax,
-      0,
-      0,
-      `"${(node.property as PropertyIdentifier).symbol}" no es propiedad de ${
-        obj.type
-      }`
-    );
 
   const prop = evaluate(node.property, env);
   const name = (prop as StringVal).value;
@@ -238,11 +240,14 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
   const nameFunction: string =
     (node.callee as Identifier).symbol ||
     (node.callee as FunctionDeclaration).identifier ||
-    (node.callee as NumericLiteral).value.toString() ||
+    (node.callee as StringLiteral).value ||
     'nulo';
   const callee = evaluate(node.callee, env) as FunctionVal;
+  let thisValue:ComplexVal = callee;
+  if(node.callee.kind == 'MemberExpr')
+    thisValue = evaluate((node.callee as MemberExpr).object, env) as ComplexVal;
 
-  if (callee.type != 'function')
+  if (callee.type != 'funcion')
     error(ErrorType.InvalidSyntax, 0, 0, `${nameFunction} no es una funcion`);
 
   const args = node.args.map(arg => evaluate(arg, env));
@@ -253,8 +258,8 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
 
   let value;
 
-  if (callee.native) value = callee.native(...args);
-  else value = evaluate(callee.body, calleeEnv)
+  if (callee.native) value = callee.native.call(thisValue, ...args);
+  else value = evaluate(callee.body, calleeEnv);
 
   return value || MK_VOID();
 }

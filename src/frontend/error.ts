@@ -5,6 +5,7 @@ export const enum ErrorType {
   InvalidToken,
   InvalidSyntax,
   InvalidType,
+  InvalidOperation,
   VariableAlreadyDeclared,
   UndefinedVariable,
   ConstantAssignment
@@ -47,6 +48,11 @@ export function error(type: ErrorType, line: number, column: number, message: st
     case ErrorType.InvalidType:
       typeError = 'ErrorTipos';
       message ||= 'Tipo invalido';
+      break;
+    case ErrorType.InvalidOperation:
+      typeError = 'ErrorMatematico';
+      message ||= 'Operacion invalida';
+      break;
     default:
       message ||= 'Error desconocido';
       break;

@@ -1,13 +1,8 @@
 import { error, ErrorType } from '../frontend/error';
-import {
-  MK_BOOLEAN,
-  MK_FUNCTION,
-  MK_NULL,
-  MK_NUMBER,
-  RuntimeVal,
-} from './values';
 
 import definition from './global/definition';
+import { RuntimeVal } from './values';
+
 export default class Environment {
   static getGlobalScope(): Environment {
     const env = new Environment();

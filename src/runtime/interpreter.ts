@@ -34,7 +34,8 @@ import {
   eval_return_statement,
   eval_var_declaration,
 } from './eval/statements';
-import { RuntimeVal, MK_NUMBER, MK_STRING } from './values';
+import { RuntimeVal } from './values';
+import { MK_NUMBER, MK_STRING } from './values/primitive';
 
 export function evaluate(astNode: Stmt | Stmt[], env: Environment): RuntimeVal {
   if (Array.isArray(astNode)) {
@@ -58,6 +59,7 @@ export function evaluate(astNode: Stmt | Stmt[], env: Environment): RuntimeVal {
 
     // Literals
     case 'ObjectLiteral':
+    case 'ArrayLiteral':
       return eval_object_expr(astNode as ObjectLiteral, env);
     case 'NumericLiteral':
       return MK_NUMBER((astNode as NumericLiteral).value);

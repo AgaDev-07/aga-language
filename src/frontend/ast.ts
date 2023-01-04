@@ -18,14 +18,14 @@ export type NodeType =
   // Literals
   | 'Property'
   | 'ObjectLiteral'
+  | 'ArrayLiteral'
   | 'NumericLiteral'
   | 'StringLiteral'
   | 'Identifier'
   | 'PropertyIdentifier'
   | 'BinaryExpr';
 
-// TODO:[ 'CallExpr', 'UnaryExpr', 'FunctionDeclaration' ]
-export interface Stmt {
+  export interface Stmt {
   kind: NodeType;
 }
 
@@ -119,6 +119,11 @@ export interface Property extends Expr {
 
 export interface ObjectLiteral extends Expr {
   kind: 'ObjectLiteral';
+  properties: Property[];
+}
+
+export interface ArrayLiteral extends Expr {
+  kind: 'ArrayLiteral';
   properties: Property[];
 }
 

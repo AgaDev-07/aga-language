@@ -1,11 +1,4 @@
-funcion test(n){
-  si (n==1) {
-    retorna "uno";
-  } entonces si (n==2){
-    retorna "dos";
-  }entonces{
-    retorna "nada";
-  }
+funcion HolaMundo() {
+  pintar("Hola Mundo")
 }
-
-pintar(test(2))
+pintar(HolaMundo.aCadena())
