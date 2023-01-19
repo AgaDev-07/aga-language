@@ -39,7 +39,7 @@ export default class Parser {
     return prev;
   }
 
-  public produceAST(sourceCode: string): Program {
+  public produceAST(sourceCode: string, isFunction=false): Program {
     this.tokens = tokenize(sourceCode);
     const program: Program = {
       kind: 'Program',
@@ -48,7 +48,7 @@ export default class Parser {
 
     // Parse until the end of the file
     while (this.not_eof()) {
-      program.body.push(this.parse_stmt());
+      program.body.push(this.parse_stmt(isFunction));
     }
 
     return program;

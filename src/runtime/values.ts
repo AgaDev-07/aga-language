@@ -13,5 +13,6 @@ export type ValueType = PrimitiveType | ComplexType | InternalType;
 export interface RuntimeVal{
   family: keyof ValueFamily;
   type: ValueFamily[this['family']];
-  __pintar__: () => any;
+  __pintar__: (n?:number) => string;
+  __NATIVO__: () => any;
 }

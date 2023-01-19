@@ -1,7 +1,4 @@
-export type BlockType =
-  | 'FunctionDeclaration'
-  | 'IfStatement'
-  | 'ElseStatement'
+export type BlockType = 'FunctionDeclaration' | 'IfStatement' | 'ElseStatement';
 
 export type NodeType =
   // Statements
@@ -25,7 +22,7 @@ export type NodeType =
   | 'PropertyIdentifier'
   | 'BinaryExpr';
 
-  export interface Stmt {
+export interface Stmt {
   kind: NodeType;
 }
 
@@ -66,9 +63,9 @@ export interface ElseStatement extends BlockStatement {
 export interface Expr extends Stmt {}
 
 export interface AssignmentExpr extends Expr {
-  kind: 'AssignmentExpr',
-  assignee: Expr,
-  value: Expr,
+  kind: 'AssignmentExpr';
+  assignee: Expr;
+  value: Expr;
 }
 
 export interface BinaryExpr extends Expr {

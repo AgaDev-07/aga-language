@@ -1,44 +1,30 @@
-import { colors } from '@agacraft/functions';
+import colors from '../../libs/colors';
 import { RuntimeVal } from '../values';
 import { MK_ARRAY_NATIVE, MK_OBJECT } from './complex';
 import { MK_BOOLEAN, MK_NULL, MK_NUMBER, MK_STRING } from './primitive';
 
-type staticColor = 'clear' | 'bold' | 'inverse';
-type color =
-  | 'black'
-  | 'red'
-  | 'green'
-  | 'yellow'
-  | 'blue'
-  | 'magenta'
-  | 'cyan'
-  | 'white'
-  | 'gray'
-  | 'grey';
-
-type colorVariants = '' |'bg' | 'Bright' | 'BrightBg';
-
-type colorType = staticColor | `${color}${colorVariants}`;
-
 export const Colors = new Proxy(colors, {
-  get: (target, prop: string) => {
-    if (prop in target) return target[prop] as unknown as Function;
-    return target.white as unknown as Function;
+  get(target, prop: string) {
+    if (prop in target) return target[prop];
+    return target.white;
   },
-}) as unknown as { [key in colorType]: Function };
+  set(target, p, newValue, receiver) {
+    if (p in target) return false;
+    if (typeof newValue !== 'function') return false;
+    target[p] = newValue;
+    return true;
+  },
+});
+
+const defaultProps = {} as any
 
 export class Properties extends Map<string, RuntimeVal> {
   constructor(entries?: [string, RuntimeVal][], private type = 'objeto') {
     super(entries);
   }
-  private default = {
-    __pintar__: () => {
-      return 'indefinido';
-    },
-    aCadena: () => MK_STRING(),
-  };
+  private default = {};
   get(key: string) {
-    return super.get(key) || this.default[key] || MK_NULL();
+    return super.get(key) || this.default[key] || defaultProps[key] || MK_NULL();
   }
   setDefault(key: string, value: RuntimeVal) {
     this.default[key] = value;
@@ -48,6 +34,23 @@ export class Properties extends Map<string, RuntimeVal> {
   }
 }
 
+defaultProps.__pintar__ = {
+  execute(){
+    return Colors.magenta('[Valor en tiempo de ejecución]');
+  },
+  properties: new Properties(),
+}
+defaultProps.aCadena = {
+  execute(){},
+  properties: new Properties(),
+  __pintar__(){
+    return Colors.cyan('[Funcion aCadena]');
+  }
+}
+defaultProps.__pintar__.__pintar__ = defaultProps.__pintar__;
+defaultProps.__pintar__.aCadena = defaultProps.aCadena;
+
+defaultProps.aCadena.aCadena = defaultProps.aCadena;
 export type InternalType = 'property' | 'return';
 
 export interface InternalVal extends RuntimeVal {
@@ -88,6 +91,7 @@ export function MK_PARSE(value: any): RuntimeVal {
   if (typeof value == 'number') return MK_NUMBER(value);
   if (typeof value == 'boolean') return MK_BOOLEAN(value);
   if (typeof value == 'object') {
+    if ((value as RuntimeVal).__NATIVO__) return value;
     if (value == null) return MK_NULL();
     if (Array.isArray(value)) return MK_ARRAY_NATIVE(...value.map(MK_PARSE));
     let entries = Object.entries(value).map(([key, value]) => [

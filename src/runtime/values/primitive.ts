@@ -5,19 +5,32 @@ import { Colors, Properties } from './internal';
 class Primitive implements RuntimeVal {
   family: 'primitive' = 'primitive';
   properties = new Properties([
-    ['__pintar__', MK_FUNCTION_NATIVE(function(){return this.value})],
-    ['aCadena', MK_FUNCTION_NATIVE(function(){return MK_STRING(this.value)})],
+    [
+      '__pintar__',
+      MK_FUNCTION_NATIVE(function () {
+        return this.value;
+      }),
+    ],
+    [
+      'aCadena',
+      MK_FUNCTION_NATIVE(function () {
+        return MK_STRING(this.value);
+      }),
+    ],
   ]);
-  constructor(public type: PrimitiveType, public value: any, props: [string, RuntimeVal][]) {
+  constructor(
+    public type: PrimitiveType,
+    public value: any,
+    props: [string, RuntimeVal][]
+  ) {
     this.properties.setAll(props);
   }
-  __pintar__() {
+  __pintar__(n: number) {
     let pintar = this.properties.get('__pintar__');
-    return pintar.native.call(this);
+    return pintar.execute.call(this, n);
   }
-  toString() {
-    let aCadena = this.properties.get('aCadena');
-    return aCadena.native.call(this);
+  __NATIVO__() {
+    return this.value;
   }
 }
 
@@ -26,7 +39,11 @@ export type PrimitiveType = 'nulo' | 'numero' | 'booleano' | 'vacio' | 'cadena';
 
 export type PrimitiveVal = Primitive;
 
-function MK_PRIMITIVE(value: any, type: PrimitiveType, props: [string, RuntimeVal][] = []): PrimitiveVal {
+function MK_PRIMITIVE(
+  value: any,
+  type: PrimitiveType,
+  props: [string, RuntimeVal][] = []
+): PrimitiveVal {
   return new Primitive(type, value, props) as PrimitiveVal;
 }
 
@@ -36,7 +53,9 @@ export interface NullVal extends PrimitiveVal {
 }
 
 export function MK_NULL(): NullVal {
-  return MK_PRIMITIVE(null, 'nulo', [['__pintar__', MK_FUNCTION_NATIVE(()=>Colors.whiteBright('nulo'))]]) as NullVal;
+  return MK_PRIMITIVE(null, 'nulo', [
+    ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.whiteBright('nulo'))],
+  ]) as NullVal;
 }
 
 export interface NumberVal extends PrimitiveVal {
@@ -50,7 +69,9 @@ export function MK_NUMBER(value = 0): NumberVal {
   return MK_PRIMITIVE(value, 'numero') as NumberVal;
 }
 export function MK_NAN(): NumberVal {
-  return MK_PRIMITIVE(null, 'numero', [['__pintar__', MK_FUNCTION_NATIVE(()=>Colors.yellow('NeN'))]]) as NumberVal;
+  return MK_PRIMITIVE(null, 'numero', [
+    ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.yellow('NeN'))],
+  ]) as NumberVal;
 }
 
 export interface BooleanVal extends PrimitiveVal {
@@ -59,7 +80,12 @@ export interface BooleanVal extends PrimitiveVal {
 }
 
 export function MK_BOOLEAN(value = false): BooleanVal {
-  return MK_PRIMITIVE(value, 'booleano', [['__pintar__', MK_FUNCTION_NATIVE(()=>Colors.yellow(value?'verdadero':'falso'))]]) as BooleanVal;
+  return MK_PRIMITIVE(value, 'booleano', [
+    [
+      '__pintar__',
+      MK_FUNCTION_NATIVE(() => Colors.yellow(value ? 'verdadero' : 'falso')),
+    ],
+  ]) as BooleanVal;
 }
 
 export interface StringVal extends PrimitiveVal {
@@ -68,7 +94,16 @@ export interface StringVal extends PrimitiveVal {
 }
 
 export function MK_STRING(value = ''): StringVal {
-  return MK_PRIMITIVE(value + '', 'cadena') as StringVal;
+  return MK_PRIMITIVE(value + '', 'cadena', [
+    [
+      '__pintar__',
+      MK_FUNCTION_NATIVE(function (this: StringVal, n: number) {
+        if (!n) return this.value;
+        let quote = this.value.includes('"') ? "'" : '"';
+        return Colors.green(quote + this.value + quote);
+      }),
+    ],
+  ]) as StringVal;
 }
 
 export interface VoidVal extends PrimitiveVal {
@@ -77,7 +112,9 @@ export interface VoidVal extends PrimitiveVal {
 }
 
 export function MK_VOID(): VoidVal {
-  return MK_PRIMITIVE(null, 'vacio', [['__pintar__', MK_FUNCTION_NATIVE(()=>Colors.gray('vacio'))]]) as VoidVal;
+  return MK_PRIMITIVE(null, 'vacio', [
+    ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.gray('vacio'))],
+  ]) as VoidVal;
 }
 
 //#endregion

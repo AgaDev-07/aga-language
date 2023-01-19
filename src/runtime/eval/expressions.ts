@@ -15,7 +15,7 @@ import { error, ErrorType } from '../../frontend/error';
 import Environment from '../environment';
 import { evaluate } from '../interpreter';
 import { RuntimeVal } from '../values';
-import { ComplexVal, FunctionVal, MK_ARRAY, MK_OBJECT, ObjectVal } from '../values/complex';
+import { ClassVal, ComplexVal, FunctionVal, MK_ARRAY, MK_OBJECT, ObjectVal } from '../values/complex';
 import { MK_PROPERTY } from '../values/internal';
 import {
   PrimitiveVal,
@@ -242,15 +242,19 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
     (node.callee as FunctionDeclaration).identifier ||
     (node.callee as StringLiteral).value ||
     'nulo';
-  const callee = evaluate(node.callee, env) as FunctionVal;
+  let callee = evaluate(node.callee, env) as FunctionVal | ClassVal;
+
+  if(callee.type == 'clase')
+    callee = callee.constructor
+
   let thisValue:ComplexVal = callee;
   if(node.callee.kind == 'MemberExpr')
     thisValue = evaluate((node.callee as MemberExpr).object, env) as ComplexVal;
 
+  const args = node.args.map(arg => evaluate(arg, env));
+
   if (callee.type != 'funcion')
     error(ErrorType.InvalidSyntax, 0, 0, `${nameFunction} no es una funcion`);
-
-  const args = node.args.map(arg => evaluate(arg, env));
 
   let value = callee.execute.call(thisValue, ...args);
 

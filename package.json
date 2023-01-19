@@ -11,8 +11,5 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^18.11.18"
-  },
-  "dependencies": {
-    "@agacraft/functions": "^1.1.0"
   }
 }

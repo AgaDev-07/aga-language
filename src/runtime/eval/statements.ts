@@ -31,7 +31,7 @@ export function eval_function_declaration(
   env: Environment
 ): RuntimeVal {
   const value = MK_FUNCTION(declaration.params, declaration.body, env, {
-    name: MK_STRING(declaration.identifier || ''),
+    nombre: MK_STRING(declaration.identifier || ''),
   })
   return env.declareVar(declaration.identifier, value);
 }

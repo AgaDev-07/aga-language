@@ -1,4 +1,4 @@
-import { colors } from '@agacraft/functions';
+import colors from '../libs/colors';
 
 export const enum ErrorType {
   DivisionByZero,
@@ -8,7 +8,7 @@ export const enum ErrorType {
   InvalidOperation,
   VariableAlreadyDeclared,
   UndefinedVariable,
-  ConstantAssignment
+  ConstantAssignment,
 }
 
 export interface Error {
@@ -18,7 +18,12 @@ export interface Error {
   column: number;
 }
 
-export function error(type: ErrorType, line: number, column: number, message: string = '') {
+export function error(
+  type: ErrorType,
+  line: number,
+  column: number,
+  message: string = ''
+) {
   let typeError = 'Error';
   switch (type) {
     case ErrorType.DivisionByZero:
@@ -57,6 +62,6 @@ export function error(type: ErrorType, line: number, column: number, message: st
       message ||= 'Error desconocido';
       break;
   }
-  console.error(`${(colors.redBright as unknown as Function)('error')} ${typeError}:\n  ${message}`);
+  console.error(`${colors.redBright('error')} ${typeError}:\n  ${message}`);
   process.exit(1);
 }

@@ -1,2 +1,2 @@
 
-modulo.exporta = 2
+modulo.exporta = verdadero
