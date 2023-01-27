@@ -1,6 +1,6 @@
 import Parser from '../../frontend/parser';
 import Environment from '../environment';
-import { RuntimeVal } from '../values';
+import { AnyVal, RuntimeVal } from '../values';
 import {
   MK_OBJECT,
   MK_FUNCTION_NATIVE,
@@ -48,7 +48,7 @@ function getObjeto() {
       true
     ),
     desdePares: MK_FUNCTION_NATIVE(
-      function (pares: ArrayVal) {
+      function (pares: ArrayVal<AnyVal>) {
         let entries = pares.__NATIVO__();
         let obj = Object.fromEntries(entries);
         return MK_PARSE(obj);
@@ -81,7 +81,6 @@ function getFuncion() {
 
   return MK_CLASS(constructor, props);
 }
-
 export default (env: Environment) => [
   ['Objeto', getObjeto()],
   ['Funcion', getFuncion()],

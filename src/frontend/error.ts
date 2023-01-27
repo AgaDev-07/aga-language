@@ -1,5 +1,36 @@
 import colors from '../libs/colors';
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const enum ErrorType {
   DivisionByZero,
   InvalidToken,
@@ -9,6 +40,11 @@ export const enum ErrorType {
   VariableAlreadyDeclared,
   UndefinedVariable,
   ConstantAssignment,
+  KeywordAssignment,
+  UnwnownModule,
+  RuntimeError,
+  FileNotFound,
+  InvalidArgument
 }
 
 export interface Error {
@@ -30,6 +66,11 @@ export function error(
       typeError = 'ErrorMatematico';
       message ||= 'No se puede dividir entre cero';
       break;
+    case ErrorType.InvalidOperation:
+      typeError = 'ErrorMatematico';
+      message ||= 'Operacion invalida';
+      break;
+
     case ErrorType.InvalidToken:
       typeError = 'ErrorSintactico';
       message ||= 'Token invalido';
@@ -38,6 +79,7 @@ export function error(
       typeError = 'ErrorSintactico';
       message ||= 'Sintaxis invalida';
       break;
+
     case ErrorType.VariableAlreadyDeclared:
       typeError = 'ErrorEjecucion';
       message ||= 'Variable ya declarada';
@@ -50,13 +92,18 @@ export function error(
       typeError = 'ErrorEjecucion';
       message ||= 'No se puede reasignar una constante';
       break;
+    case ErrorType.KeywordAssignment:
+      typeError = 'ErrorEjecucion';
+      message ||= 'No se puede reasignar una palabra reservada';
+      break;
+    case ErrorType.UnwnownModule:
+      typeError = 'ErrorEjecucion';
+      message ||= 'Modulo no encontrado';
+      break;
+
     case ErrorType.InvalidType:
       typeError = 'ErrorTipos';
       message ||= 'Tipo invalido';
-      break;
-    case ErrorType.InvalidOperation:
-      typeError = 'ErrorMatematico';
-      message ||= 'Operacion invalida';
       break;
     default:
       message ||= 'Error desconocido';

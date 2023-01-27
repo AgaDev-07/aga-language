@@ -3,11 +3,10 @@ import Environment from '../environment';
 import { RuntimeVal } from '../values';
 import {
   ArrayVal,
-  FunctionVal,
   MK_ARRAY,
   MK_FUNCTION_NATIVE,
   MK_OBJECT,
-  ObjectVal,
+  ModuleVal,
 } from '../values/complex';
 import { MK_BOOLEAN, MK_NULL, MK_VOID, StringVal } from '../values/primitive';
 
@@ -25,15 +24,16 @@ function calcPath(path: string,folder: string) {
   }
   return path;
 }
+
 function requiere(env: Environment) {
   return (path: StringVal) => {
-    const thisModule = env.lookupVar('modulo') as ObjectVal;
-    const childrens = thisModule.properties.get('hijos') as ArrayVal;
-    const folder = thisModule.properties.get('folder').value as string;
+    const thisModule = env.lookupVar('modulo') as ModuleVal;
+    const childrens = thisModule.properties.get('hijos') as ArrayVal<ModuleVal>;
+    const folder = thisModule.properties.get('folder') as StringVal;
 
-    const module = run.file(calcPath(path.value, folder));
-    (childrens.properties.get('agregar') as FunctionVal).execute.call(childrens, module);
-    return module;
+    const module = run.file(calcPath(path.value, folder.value));
+    childrens.properties.get('agregar').execute.call(childrens, module);
+    return module.properties.get('exporta');
   };
 }
 

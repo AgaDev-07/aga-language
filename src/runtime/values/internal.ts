@@ -1,7 +1,22 @@
 import colors from '../../libs/colors';
-import { RuntimeVal } from '../values';
-import { MK_ARRAY_NATIVE, MK_OBJECT } from './complex';
-import { MK_BOOLEAN, MK_NULL, MK_NUMBER, MK_STRING } from './primitive';
+import { AnyVal, RuntimeClassVal, RuntimeVal, ValueType } from '../values';
+import {
+  ArrayVal,
+  FunctionVal,
+  MK_ARRAY_NATIVE,
+  MK_FUNCTION_NATIVE,
+  MK_OBJECT,
+  ModuleVal,
+  ObjectVal,
+} from './complex';
+import {
+  MK_BOOLEAN,
+  MK_BUFFER,
+  MK_NULL,
+  MK_NUMBER,
+  MK_STRING,
+  StringVal,
+} from './primitive';
 
 export const Colors = new Proxy(colors, {
   get(target, prop: string) {
@@ -16,41 +31,81 @@ export const Colors = new Proxy(colors, {
   },
 });
 
-const defaultProps = {} as any
+const defaultProps: { [key: string]: RuntimeVal } = {};
 
-export class Properties extends Map<string, RuntimeVal> {
+type propsDefault<T extends AnyVal> = {
+  funcion: {
+    nombre: StringVal;
+    constructor: FunctionVal;
+  };
+  modulo: {
+    nombre: StringVal;
+    folder: StringVal;
+    hijos: ArrayVal<ModuleVal>;
+    exporta: ObjectVal;
+  };
+  lista: {
+    agregar: FunctionVal;
+  };
+} & {
+  [key in ValueType]: {
+    __pintar__: FunctionVal;
+    aTexto: FunctionVal & { execute(): StringVal };
+  };
+} & {
+  [key in ValueType]: {
+    [key: string]: T;
+  };
+};
+
+export class Properties<
+  T extends ValueType,
+  C extends AnyVal = AnyVal
+> extends Map<string, RuntimeVal> {
   constructor(entries?: [string, RuntimeVal][], private type = 'objeto') {
     super(entries);
   }
-  private default = {};
-  get(key: string) {
-    return super.get(key) || this.default[key] || defaultProps[key] || MK_NULL();
+  private default: { [key: string]: RuntimeVal } = {};
+  get<V extends keyof propsDefault<C>[T], R extends propsDefault<C>[T][V]>(
+    key: V
+  ): R {
+    const k = key as string;
+    const value =
+      super.get(k) || this.default[k] || defaultProps[k] || MK_NULL();
+
+    return value as R;
   }
   setDefault(key: string, value: RuntimeVal) {
     this.default[key] = value;
+    return this;
+  }
+  setAllDefault(entries: [string, RuntimeVal][]) {
+    entries.forEach(([key, value]) => this.setDefault(key, value));
+    return this;
   }
   setAll(entries: [string, RuntimeVal][]) {
     entries.forEach(([key, value]) => this.set(key, value));
+    return this;
   }
 }
 
 defaultProps.__pintar__ = {
-  execute(){
+  execute() {
     return Colors.magenta('[Valor en tiempo de ejecución]');
   },
   properties: new Properties(),
-}
+} as unknown as FunctionVal;
 defaultProps.aCadena = {
-  execute(){},
+  execute() {},
   properties: new Properties(),
-  __pintar__(){
+  __pintar__() {
     return Colors.cyan('[Funcion aCadena]');
-  }
-}
-defaultProps.__pintar__.__pintar__ = defaultProps.__pintar__;
-defaultProps.__pintar__.aCadena = defaultProps.aCadena;
+  },
+} as unknown as FunctionVal;
+defaultProps.__pintar__.properties.set('__pintar__', defaultProps.__pintar__);
+defaultProps.__pintar__.properties.set('aCadena', defaultProps.aCadena);
 
-defaultProps.aCadena.aCadena = defaultProps.aCadena;
+defaultProps.aCadena.properties.set('__pintar__', defaultProps.__pintar__);
 export type InternalType = 'property' | 'return';
 
 export interface InternalVal extends RuntimeVal {
@@ -90,7 +145,9 @@ export function MK_PARSE(value: any): RuntimeVal {
   }
   if (typeof value == 'number') return MK_NUMBER(value);
   if (typeof value == 'boolean') return MK_BOOLEAN(value);
+  if(typeof value == 'function') return MK_FUNCTION_NATIVE(value)
   if (typeof value == 'object') {
+    if (Buffer.isBuffer(value)) return MK_BUFFER(value)
     if ((value as RuntimeVal).__NATIVO__) return value;
     if (value == null) return MK_NULL();
     if (Array.isArray(value)) return MK_ARRAY_NATIVE(...value.map(MK_PARSE));

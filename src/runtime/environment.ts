@@ -3,6 +3,7 @@ import { error, ErrorType } from '../frontend/error';
 import definition from './global/definition';
 import { RuntimeVal } from './values';
 
+const keywords = new Set(['nulo', 'verdadero', 'falso', 'vacio']);
 export default class Environment {
   static getGlobalScope(): Environment {
     const env = new Environment();
@@ -22,9 +23,17 @@ export default class Environment {
   public declareVar(
     name: string,
     value: RuntimeVal,
-    constant: boolean = false
+    constant: boolean = false,
+    keyword: boolean = false
   ): RuntimeVal {
-    if (this.variables.has(name))
+    if (!keyword && keywords.has(name))
+      error(
+        ErrorType.KeywordAssignment,
+        0,
+        0,
+        `Variable '${name}' es una palabra reservada y no puede ser declarara`
+      );
+    else if (this.variables.has(name))
       error(
         ErrorType.VariableAlreadyDeclared,
         0,
@@ -38,7 +47,14 @@ export default class Environment {
 
   public assignVar(name: string, value: RuntimeVal): RuntimeVal {
     const env = this.resolve(name);
-    if (env.constants.has(name))
+    if (keywords.has(name))
+      error(
+        ErrorType.KeywordAssignment,
+        0,
+        0,
+        `Variable '${name}' es una palabra reservada y no puede ser modificada`
+      );
+    else if (env.constants.has(name))
       error(
         ErrorType.ConstantAssignment,
         0,

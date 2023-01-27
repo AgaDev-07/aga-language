@@ -1,1 +1,4 @@
-pintar(Funcion.aCadena)
+const a = requiere('test');
+const b = requiere('archivos');
+
+pintar(a, b)

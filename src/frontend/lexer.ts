@@ -23,6 +23,7 @@ export const enum TokenType {
   CloseBrace, // }
   OpenBracket, // [
   CloseBracket, // ]
+  Backslash, // \
   EOF, // End of file
 
   // Keywords
@@ -74,7 +75,36 @@ function getString(src: string[], quote: string = '"') {
   let str = '';
   src.shift();
   while (src.length > 0 && src[0] != quote) {
-    str += src.shift();
+    if (src[0] == '\\'){
+      src.shift();
+      let next = src.shift();
+      if (next == 'n') str += '\n';
+      else if (next == 't') str += '\t';
+      else if (next == 'r') str += '\r';
+      else if (next == 'b') str += '\b';
+      else if (next == 'f') str += '\f';
+      else if (next == 'v') str += '\v';
+      else if (next == '0') str += '\0';
+      else if (next == 'x') {
+        src.shift();
+        let hex = src.shift() + src.shift();
+        str += String.fromCharCode(parseInt(hex, 16));
+      }
+      else if (next == 'u') {
+        src.shift();
+        let hex = src.shift() + src.shift() + src.shift() + src.shift();
+        str += String.fromCharCode(parseInt(hex, 16));
+      }
+      else if (next == 'U') {
+        src.shift();
+        let hex = src.shift() + src.shift() + src.shift() + src.shift() + src.shift() + src.shift() + src.shift() + src.shift();
+        str += String.fromCharCode(parseInt(hex, 16));
+      }
+      else if(next == '\\') str += '\\';
+      else if(next == '"') str += '"';
+      else if(next == "'") str += "'";
+    }
+    else str += src.shift();
   }
   src.shift();
   return token(str, TokenType.String);
@@ -117,6 +147,7 @@ export function tokenize(sourceCode: string): Token[] {
     else if (src[0] == '.') tokens.push(token(src.shift(), TokenType.Dot));
     else if (src[0] == '"') tokens.push(getString(src));
     else if (src[0] == "'") tokens.push(getString(src, "'"))
+    else if (src[0] == '\\') tokens.push(token(src.shift(), TokenType.Backslash));
     else {
       if (isInt(src[0])) {
         let num = '';

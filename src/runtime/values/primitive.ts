@@ -35,7 +35,7 @@ class Primitive implements RuntimeVal {
 }
 
 //#region PrimitiveTypes
-export type PrimitiveType = 'nulo' | 'numero' | 'booleano' | 'vacio' | 'cadena';
+export type PrimitiveType = 'nulo' | 'numero' | 'booleano' | 'vacio' | 'cadena' | 'buffer';
 
 export type PrimitiveVal = Primitive;
 
@@ -66,7 +66,9 @@ export interface NumberVal extends PrimitiveVal {
 export function MK_NUMBER(value = 0): NumberVal {
   if (value != value) return MK_NAN();
   if (typeof value != 'number') return MK_NUMBER(Number(value));
-  return MK_PRIMITIVE(value, 'numero') as NumberVal;
+  return MK_PRIMITIVE(value, 'numero', [
+    ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.yellow(value+''))],
+  ]) as NumberVal;
 }
 export function MK_NAN(): NumberVal {
   return MK_PRIMITIVE(null, 'numero', [
@@ -99,11 +101,22 @@ export function MK_STRING(value = ''): StringVal {
       '__pintar__',
       MK_FUNCTION_NATIVE(function (this: StringVal, n: number) {
         if (!n) return this.value;
-        let quote = this.value.includes('"') ? "'" : '"';
-        return Colors.green(quote + this.value + quote);
+        let quote = this.value.includes("'") ? '"' : "'";
+        return Colors.green(quote + this.value.replace(quote, `\\${quote}`) + quote);
       }),
     ],
   ]) as StringVal;
+}
+
+export interface BufferVal extends PrimitiveVal {
+  type: 'buffer';
+  value: Buffer;
+}
+
+export function MK_BUFFER(value = Buffer.alloc(0)): BufferVal {
+  return MK_PRIMITIVE(value, 'buffer', [
+    ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.yellow('buffer'))],
+  ]) as BufferVal;
 }
 
 export interface VoidVal extends PrimitiveVal {
