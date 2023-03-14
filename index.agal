@@ -1,0 +1,4 @@
+const i = Mate.I;
+const x = 1+i;
+
+pintar(x*x)

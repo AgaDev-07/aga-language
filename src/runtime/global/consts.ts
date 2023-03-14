@@ -1,14 +1,14 @@
-import run from '../../run';
-import Environment from '../environment';
-import { RuntimeVal } from '../values';
+import run from '../../run.js';
+import Environment from '../environment.js';
+import { RuntimeVal } from '../values.js';
 import {
   ArrayVal,
   MK_ARRAY,
   MK_FUNCTION_NATIVE,
   MK_OBJECT,
   ModuleVal,
-} from '../values/complex';
-import { MK_BOOLEAN, MK_NULL, MK_VOID, StringVal } from '../values/primitive';
+} from '../values/complex.js';
+import { StringVal } from '../values/primitive.js';
 
 function calcPath(path: string,folder: string) {
   if (path.startsWith('./'))
@@ -31,7 +31,7 @@ function requiere(env: Environment) {
     const childrens = thisModule.properties.get('hijos') as ArrayVal<ModuleVal>;
     const folder = thisModule.properties.get('folder') as StringVal;
 
-    const module = run.file(calcPath(path.value, folder.value));
+    const module = run.file(calcPath(path.value, folder.value), folder.value);
     childrens.properties.get('agregar').execute.call(childrens, module);
     return module.properties.get('exporta');
   };
@@ -39,10 +39,6 @@ function requiere(env: Environment) {
 
 export default (env: Environment) =>
   [
-    ['nulo', MK_NULL()],
-    ['falso', MK_BOOLEAN(false)],
-    ['verdadero', MK_BOOLEAN(true)],
-    ['vacio', MK_VOID()],
     [
       'modulo',
       MK_OBJECT({

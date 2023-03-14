@@ -6,6 +6,7 @@ import {
   FunctionDeclaration,
   Identifier,
   IfStatement,
+  IterableLiteral,
   MemberExpr,
   NumericLiteral,
   ObjectLiteral,
@@ -15,9 +16,9 @@ import {
   Stmt,
   StringLiteral,
   VarDeclaration,
-} from '../frontend/ast';
-import { error, ErrorType } from '../frontend/error';
-import Environment from './environment';
+} from '../frontend/ast.js';
+import { error, ErrorType } from '../frontend/error.js';
+import Environment from './environment.js';
 import {
   eval_identifier,
   eval_binary_expr,
@@ -26,16 +27,17 @@ import {
   eval_member_expr,
   eval_call_expr,
   eval_property_identifier,
-} from './eval/expressions';
+  eval_iterable_literal,
+} from './eval/expressions.js';
 import {
   eval_function_declaration,
   eval_if_statement,
   eval_program,
   eval_return_statement,
   eval_var_declaration,
-} from './eval/statements';
-import { RuntimeVal } from './values';
-import { MK_NUMBER, MK_STRING } from './values/primitive';
+} from './eval/statements.js';
+import { RuntimeVal } from './values.js';
+import { MK_NUMBER, MK_STRING } from './values/primitive.js';
 
 export function evaluate(astNode: Stmt | Stmt[], env: Environment): RuntimeVal {
   if (Array.isArray(astNode)) {
@@ -65,6 +67,8 @@ export function evaluate(astNode: Stmt | Stmt[], env: Environment): RuntimeVal {
       return MK_NUMBER((astNode as NumericLiteral).value);
     case 'StringLiteral':
       return MK_STRING((astNode as StringLiteral).value);
+    case 'IterableLiteral':
+      return eval_iterable_literal(astNode as IterableLiteral, env);
 
     // Identifiers
     case 'Identifier':

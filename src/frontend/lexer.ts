@@ -1,4 +1,4 @@
-import { error, ErrorType } from './error';
+import { error, ErrorType } from './error.js';
 
 export const enum TokenType {
   // Types
@@ -23,6 +23,8 @@ export const enum TokenType {
   CloseBrace, // }
   OpenBracket, // [
   CloseBracket, // ]
+  OpenAngle, // <
+  CloseAngle, // >
   Backslash, // \
   EOF, // End of file
 
@@ -60,10 +62,14 @@ function isAlpha(src: string) {
 }
 
 // Validate that the character is a number
-function isInt(str: string) {
+function isInt(str: string, bool: boolean = true) {
   const c = str.charCodeAt(0);
   const bounds = ['0'.charCodeAt(0), '9'.charCodeAt(0)];
-  return c >= bounds[0] && c <= bounds[1];
+
+  const isNumber = c >= bounds[0] && c <= bounds[1];
+  const isDot = bool && str == '.'
+
+  return isNumber || isDot;
 }
 
 // Validate that the character is a skippable character
@@ -127,6 +133,10 @@ export function tokenize(sourceCode: string): Token[] {
       tokens.push(token(src.shift(), TokenType.OpenBracket));
     else if (src[0] == ']')
       tokens.push(token(src.shift(), TokenType.CloseBracket));
+    else if (src[0] == '<')
+      tokens.push(token(src.shift(), TokenType.OpenAngle));
+    else if (src[0] == '>')
+      tokens.push(token(src.shift(), TokenType.CloseAngle));
     else if (
       src[0] == '+' ||
       src[0] == '-' ||
@@ -149,9 +159,10 @@ export function tokenize(sourceCode: string): Token[] {
     else if (src[0] == "'") tokens.push(getString(src, "'"))
     else if (src[0] == '\\') tokens.push(token(src.shift(), TokenType.Backslash));
     else {
-      if (isInt(src[0])) {
+      if (isInt(src[0], false)) {
         let num = '';
         while (src.length > 0 && isInt(src[0])) {
+          if(src[0] == '.' && num.includes('.')) error(ErrorType.InvalidSyntax, 0, 0, `Un numero no puede tener mas de dos puntos decimales`);
           num += src.shift();
         }
 
@@ -167,13 +178,14 @@ export function tokenize(sourceCode: string): Token[] {
         if (typeof reserved == 'number') tokens.push(token(id, reserved));
         else tokens.push(token(id, TokenType.Identifier));
       } else if (isSkippable(src[0])) src.shift();
-      else
+      else{
         error(
           ErrorType.InvalidSyntax,
           0,
           0,
           `Caracter "${src[0]}" no funciono en el analizador lexico`
         );
+      }
     }
   }
 

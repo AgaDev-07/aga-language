@@ -1,6 +1,6 @@
-import { ArrayVal, ComplexType, FunctionVal, ModuleVal, ObjectVal } from "./values/complex";
-import { InternalType, InternalVal, Properties } from "./values/internal";
-import { BooleanVal, NullVal, PrimitiveType, StringVal, VoidVal } from "./values/primitive";
+import { ArrayVal, ComplexType, FunctionVal, ModuleVal, ObjectVal } from "./values/complex.js";
+import { InternalType, InternalVal, IteratorVal, Properties } from "./values/internal.js";
+import { BooleanVal, BufferVal, NullVal, NumberVal, PrimitiveType, StringVal, VoidVal } from "./values/primitive.js";
 
 export interface ValueFamily {
   primitive: PrimitiveType;
@@ -9,7 +9,7 @@ export interface ValueFamily {
 }
 
 export type ValueType = PrimitiveType | ComplexType | InternalType;
-export type AnyVal = FunctionVal | ObjectVal | ArrayVal<AnyVal> | StringVal | BooleanVal | NullVal | VoidVal | ModuleVal;
+export type AnyVal = FunctionVal | ObjectVal | ArrayVal<AnyVal> | StringVal | BooleanVal | NullVal | VoidVal | ModuleVal | NumberVal | BufferVal;
 
 export interface RuntimeVal{
   family: keyof ValueFamily;
@@ -18,6 +18,14 @@ export interface RuntimeVal{
   value?: any;
   __pintar__: (n?:number) => string;
   __NATIVO__: () => any;
+  __iterable__: () => IteratorVal;
 }
 
-export class RuntimeClassVal{}
+export class RuntimeClassVal{
+  __iterable__(){
+    let iterable = (this as unknown as RuntimeVal).properties.get('__iterable__');
+    if(iterable.type === 'funcion'){
+      return iterable.execute.call(this);
+    }
+  };
+}

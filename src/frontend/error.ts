@@ -1,38 +1,7 @@
-import colors from '../libs/colors';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import colors from '../libs/colors.js';
 
 
 export const enum ErrorType {
-  DivisionByZero,
   InvalidToken,
   InvalidSyntax,
   InvalidType,
@@ -44,7 +13,8 @@ export const enum ErrorType {
   UnwnownModule,
   RuntimeError,
   FileNotFound,
-  InvalidArgument
+  InvalidArgument,
+  MathError
 }
 
 export interface Error {
@@ -60,12 +30,8 @@ export function error(
   column: number,
   message: string = ''
 ) {
-  let typeError = 'Error';
+  let typeError = 'ErrorIndefinido';
   switch (type) {
-    case ErrorType.DivisionByZero:
-      typeError = 'ErrorMatematico';
-      message ||= 'No se puede dividir entre cero';
-      break;
     case ErrorType.InvalidOperation:
       typeError = 'ErrorMatematico';
       message ||= 'Operacion invalida';
@@ -105,8 +71,11 @@ export function error(
       typeError = 'ErrorTipos';
       message ||= 'Tipo invalido';
       break;
+    case ErrorType.MathError:
+      typeError = 'ErrorMatematico';
+      message ||= 'Error matematico';
     default:
-      message ||= 'Error desconocido';
+      message ||= '¿Error no definido?';
       break;
   }
   console.error(`${colors.redBright('error')} ${typeError}:\n  ${message}`);

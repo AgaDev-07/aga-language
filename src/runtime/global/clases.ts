@@ -1,6 +1,6 @@
-import Parser from '../../frontend/parser';
-import Environment from '../environment';
-import { AnyVal, RuntimeVal } from '../values';
+import Parser from '../../frontend/parser.js';
+import Environment from '../environment.js';
+import { AnyVal, RuntimeVal } from '../values.js';
 import {
   MK_OBJECT,
   MK_FUNCTION_NATIVE,
@@ -8,9 +8,9 @@ import {
   ArrayVal,
   MK_CLASS,
   MK_FUNCTION,
-} from '../values/complex';
-import { MK_PARSE } from '../values/internal';
-import { MK_STRING, StringVal } from '../values/primitive';
+} from '../values/complex.js';
+import { MK_PARSE } from '../values/internal.js';
+import { MK_STRING, StringVal } from '../values/primitive.js';
 
 function getObjeto() {
   let constructor = MK_FUNCTION_NATIVE(

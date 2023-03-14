@@ -1,10 +1,10 @@
-import { FunctionDeclaration, IfStatement, Program, ReturnStatement, VarDeclaration } from '../../frontend/ast';
-import Environment from '../environment';
-import { evaluate } from '../interpreter';
-import { RuntimeVal } from '../values';
-import { MK_FUNCTION } from '../values/complex';
-import { MK_RETURN } from '../values/internal';
-import { MK_NULL, BooleanVal, MK_BOOLEAN, MK_VOID, MK_STRING } from '../values/primitive';
+import { FunctionDeclaration, IfStatement, Program, ReturnStatement, VarDeclaration } from '../../frontend/ast.js';
+import Environment from '../environment.js';
+import { evaluate } from '../interpreter.js';
+import { RuntimeVal } from '../values.js';
+import { MK_FUNCTION } from '../values/complex.js';
+import { MK_RETURN } from '../values/internal.js';
+import { MK_NULL, BooleanVal, MK_BOOLEAN, MK_VOID, MK_STRING, MK_BOOLEAN_RUNTIME } from '../values/primitive.js';
 
 export function eval_program(program: Program, env: Environment): RuntimeVal {
   let lastEvaluated: RuntimeVal = MK_NULL();
@@ -40,8 +40,8 @@ export function eval_if_statement(
   statement: IfStatement,
   env: Environment
 ): RuntimeVal {
-  let condition = evaluate(statement.condition, env) as BooleanVal;
-  if (condition.type !== 'booleano')condition = MK_BOOLEAN(condition.value)
+  let preCondition = evaluate(statement.condition, env) as BooleanVal;
+  let condition = MK_BOOLEAN_RUNTIME(preCondition);
 
   if (condition.value) {
     return evaluate(statement.body, env);

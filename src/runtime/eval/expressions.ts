@@ -5,13 +5,14 @@ import {
   CallExpr,
   FunctionDeclaration,
   Identifier,
+  IterableLiteral,
   MemberExpr,
   NumericLiteral,
   ObjectLiteral,
   PropertyIdentifier,
   StringLiteral,
-} from '../../frontend/ast';
-import { error, ErrorType } from '../../frontend/error';
+} from '../../frontend/ast.js';
+import { error, ErrorType } from '../../frontend/error.js';
 import Environment from '../environment';
 import { evaluate } from '../interpreter';
 import { RuntimeVal } from '../values';
@@ -26,8 +27,16 @@ import {
   MK_STRING,
   MK_VOID,
   StringVal,
-  MK_NAN,
-} from '../values/primitive';
+  NumberRuntime,
+} from '../values/primitive.js';
+
+export function eval_iterable_literal(
+  iterable: IterableLiteral,
+  env: Environment
+): RuntimeVal {
+  const identifier = evaluate(iterable.value, env);
+  return identifier.__iterable__()
+}
 
 export function eval_condition_binary_expr(
   lhs: PrimitiveVal,
@@ -58,26 +67,34 @@ export function eval_condition_binary_expr(
 }
 
 export function eval_numeric_binary_expr(
-  lhs: NumberVal,
-  rhs: NumberVal,
+  lhs: NumberRuntime,
+  rhs: NumberRuntime,
   operator: string
 ): RuntimeVal {
-  let result = 0;
-
-  if (operator == '+') result = lhs.value + rhs.value;
-  else if (operator == '-') result = lhs.value - rhs.value;
-  else if (operator == '*') result = lhs.value * rhs.value;
-  else if (operator == '/') {
-    if (rhs.value == 0)
-      error(ErrorType.DivisionByZero, 0, 0, 'Division entre cero no permitido');
-    result = lhs.value / rhs.value;
-  } else if (operator == '%') {
-    if (rhs.value == 0)
-      error(ErrorType.DivisionByZero, 0, 0, 'Division entre cero no permitido');
-    result = lhs.value % rhs.value;
+  if (operator === '+') return lhs.add(rhs);
+  else if (operator === '-') return lhs.subtract(rhs);
+  else if (operator === '*') return lhs.multiply(rhs);
+  else if (operator === '/') {
+    if (rhs.value == 0 && rhs.imaginary === 0){
+      if(lhs.value > 0) return NumberRuntime.Infinity;
+      else if(lhs.value < 0) return NumberRuntime.NegativeInfinity;
+      else return NumberRuntime.NaN;
+    }
+    return lhs.divide(rhs);
+  } else if (operator === '%') {
+    if (rhs.value === 0 && rhs.imaginary === 0)
+      return NumberRuntime.NaN;
+    return lhs.modulo(rhs);
+  } else if(operator === '^'){
+    if(rhs.value === 0 && rhs.imaginary === 0)
+      return NumberRuntime.One;
+    if(lhs.value === 0 && lhs.imaginary === 0)
+      return NumberRuntime.Zero;
+    return lhs.power(rhs);
   }
-
-  return MK_NUMBER(result);
+  else {
+    error(ErrorType.InvalidOperation, 0, 0, `Operador "${operator}" no valido`);
+  }
 }
 
 function parse(value: PrimitiveVal, type: string): RuntimeVal {
@@ -89,7 +106,7 @@ function parse(value: PrimitiveVal, type: string): RuntimeVal {
   if (type == 'void') return MK_VOID();
   return MK_NULL();
 }
-function isNaN(value: PrimitiveVal): boolean {
+function isNeN(value: PrimitiveVal): boolean {
   if (value.type == 'numero') return value.value == null;
   return false;
 }
@@ -120,9 +137,9 @@ export function eval_parse_binary_expr(
   const hasString = lhs.type == 'cadena' || rhs.type == 'cadena';
 
   if (hasNumber) {
-    let lVal = parse(lhs, 'numero') as NumberVal;
-    let rVal = parse(rhs, 'numero') as NumberVal;
-    if (isNaN(lVal) || isNaN(rVal)) return MK_NAN();
+    let lVal = parse(lhs, 'numero') as NumberRuntime;
+    let rVal = parse(rhs, 'numero') as NumberRuntime;
+    if (isNeN(lVal) || isNeN(rVal)) return NumberRuntime.NaN;
     return eval_numeric_binary_expr(lVal, rVal, operator);
   }
   if (hasString) {
@@ -231,7 +248,9 @@ export function eval_member_expr(
   const obj = evaluate(node.object, env) as ObjectVal;
 
   const prop = evaluate(node.property, env);
-  const name = (prop as StringVal).value;
+  let name = (prop as StringVal).value;
+  if(typeof name == 'number') name = `${name}`;
+
   const value = obj.properties.get(name);
   return value || MK_NULL();
 }
@@ -242,16 +261,31 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
     (node.callee as FunctionDeclaration).identifier ||
     (node.callee as StringLiteral).value ||
     'nulo';
-  let callee = evaluate(node.callee, env) as FunctionVal | ClassVal;
+  let callee = evaluate(node.callee, env) as FunctionVal | ClassVal | NumberVal;
 
   if(callee.type == 'clase')
     callee = callee.constructor
 
+  const args = node.args.map(arg => evaluate(arg, env));
+
+  if(callee.type == 'numero'){
+    let arg = args[0] as NumberVal;
+
+    if(!arg){
+      error(ErrorType.InvalidSyntax, 0, 0, `No se puede multiplicar ${callee.value} por nulo`);
+    }
+    let number = MK_NUMBER(arg.value);
+
+    if(number.value == null){
+      error(ErrorType.InvalidSyntax, 0, 0, `No se puede multiplicar ${callee.value} por ${arg.value}`);
+    }
+
+    return MK_NUMBER(callee.value * number.value);
+  }
+
   let thisValue:ComplexVal = callee;
   if(node.callee.kind == 'MemberExpr')
     thisValue = evaluate((node.callee as MemberExpr).object, env) as ComplexVal;
-
-  const args = node.args.map(arg => evaluate(arg, env));
 
   if (callee.type != 'funcion')
     error(ErrorType.InvalidSyntax, 0, 0, `${nameFunction} no es una funcion`);

@@ -14,9 +14,9 @@ import {
   ElseStatement,
   StringLiteral,
   ArrayLiteral,
-} from './ast';
-import { tokenize, Token, TokenType } from './lexer';
-import { error, ErrorType } from './error';
+} from './ast.js';
+import { tokenize, Token, TokenType } from './lexer.js';
+import { error, ErrorType } from './error.js';
 
 export default class Parser {
   private tokens: Token[];

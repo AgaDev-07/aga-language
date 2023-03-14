@@ -18,6 +18,7 @@ export type NodeType =
   | 'ArrayLiteral'
   | 'NumericLiteral'
   | 'StringLiteral'
+  | 'IterableLiteral'
   | 'Identifier'
   | 'PropertyIdentifier'
   | 'BinaryExpr';
@@ -106,6 +107,11 @@ export interface NumericLiteral extends Expr {
 export interface StringLiteral extends Expr {
   kind: 'StringLiteral';
   value: string;
+}
+
+export interface IterableLiteral extends Expr {
+  kind: 'IterableLiteral';
+  value: Expr;
 }
 
 export interface Property extends Expr {

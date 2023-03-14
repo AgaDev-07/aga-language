@@ -1,0 +1,80 @@
+{
+  "kind": "Program",
+  "body": [
+    {
+      "kind": "VarDeclaration",
+      "value": {
+        "kind": "CallExpr",
+        "callee": {
+          "kind": "Identifier",
+          "symbol": "requiere"
+        },
+        "args": [
+          {
+            "kind": "StringLiteral",
+            "value": "so"
+          }
+        ]
+      },
+      "constant": true,
+      "identifier": "so"
+    },
+    {
+      "kind": "CallExpr",
+      "callee": {
+        "kind": "Identifier",
+        "symbol": "pintar"
+      },
+      "args": [
+        {
+          "kind": "CallExpr",
+          "callee": {
+            "kind": "MemberExpr",
+            "object": {
+              "kind": "MemberExpr",
+              "object": {
+                "kind": "Identifier",
+                "symbol": "so"
+              },
+              "property": {
+                "kind": "PropertyIdentifier",
+                "symbol": "memoria"
+              },
+              "computed": false
+            },
+            "property": {
+              "kind": "PropertyIdentifier",
+              "symbol": "total"
+            },
+            "computed": false
+          },
+          "args": []
+        },
+        {
+          "kind": "CallExpr",
+          "callee": {
+            "kind": "MemberExpr",
+            "object": {
+              "kind": "MemberExpr",
+              "object": {
+                "kind": "Identifier",
+                "symbol": "so"
+              },
+              "property": {
+                "kind": "PropertyIdentifier",
+                "symbol": "memoria"
+              },
+              "computed": false
+            },
+            "property": {
+              "kind": "PropertyIdentifier",
+              "symbol": "libre"
+            },
+            "computed": false
+          },
+          "args": []
+        }
+      ]
+    }
+  ]
+}

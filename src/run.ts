@@ -7,11 +7,11 @@ import Parser from './frontend/parser';
 import Environment from './runtime/environment';
 import { evaluate } from './runtime/interpreter';
 import { RuntimeVal } from './runtime/values';
-import { MK_OBJECT, ModuleVal, ObjectVal } from './runtime/values/complex';
-import { MK_STRING, StringVal } from './runtime/values/primitive';
+import { MK_OBJECT, ModuleVal } from './runtime/values/complex';
+import { MK_STRING } from './runtime/values/primitive';
 import { error, ErrorType } from './frontend/error';
 
-import agal_modules from './agal_modules';
+import agal_modules from './agal_modules/index';
 
 const EXTENCION = 'agal';
 const INDEX = 'principal';
@@ -28,7 +28,7 @@ function getDir(): string {
 
 function getModulePaths(path: string): string[] {
   const paths = path.split(/[\\\/]/);
-  const modulePaths = [];
+  const modulePaths:string[] = [];
   for (let i = paths.length; i > 0; i--) {
     const modulePath = paths.slice(0, i).join('/');
     modulePaths.push(modulePath + '/' + DIR_MODULES);
@@ -41,6 +41,8 @@ function getPath(path: string): string {
 
   if (afs.isFile(path)) return path;
   if (afs.isFile(`${path}.${EXTENCION}`)) return `${path}.${EXTENCION}`;
+
+  return '';
 }
 
 function getModulePath(actualDir: string, module: string): string | void {
@@ -95,15 +97,15 @@ export default function run(
   const program = parser.produceAST(sourceCode);
 
   const module = evaluate(program, env) as ModuleVal;
+  module[Symbol.toPrimitive] = program
   return module;
 }
 
-run.file = function (original_path: string) {
-  console.log(agal_modules, original_path)
+run.file = function (original_path: string, folder: string = '') {
   if(agal_modules[original_path]){
     const fn = agal_modules[original_path];
     const module = MK_OBJECT({
-      exporta: fn(original_path),
+      exporta: fn(folder),
       nombre: MK_STRING(original_path),
     });
     return module;

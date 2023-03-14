@@ -1,7 +1,7 @@
-import { error, ErrorType } from '../frontend/error';
+import { error, ErrorType } from '../frontend/error.js';
 
-import definition from './global/definition';
-import { RuntimeVal } from './values';
+import definition from './global/definition.js';
+import { RuntimeVal } from './values.js';
 
 const keywords = new Set(['nulo', 'verdadero', 'falso', 'vacio']);
 export default class Environment {

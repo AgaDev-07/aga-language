@@ -1,22 +1,24 @@
-import colors from '../../libs/colors';
-import { AnyVal, RuntimeClassVal, RuntimeVal, ValueType } from '../values';
+import colors from '../../libs/colors.js';
+import { AnyVal, RuntimeClassVal, RuntimeVal, ValueType } from '../values.js';
 import {
   ArrayVal,
   FunctionVal,
   MK_ARRAY_NATIVE,
   MK_FUNCTION_NATIVE,
   MK_OBJECT,
+  MK_OBJECT_NATIVE,
   ModuleVal,
   ObjectVal,
-} from './complex';
+} from './complex.js';
 import {
   MK_BOOLEAN,
   MK_BUFFER,
   MK_NULL,
   MK_NUMBER,
   MK_STRING,
+  NullVal,
   StringVal,
-} from './primitive';
+} from './primitive.js';
 
 export const Colors = new Proxy(colors, {
   get(target, prop: string) {
@@ -106,7 +108,8 @@ defaultProps.__pintar__.properties.set('__pintar__', defaultProps.__pintar__);
 defaultProps.__pintar__.properties.set('aCadena', defaultProps.aCadena);
 
 defaultProps.aCadena.properties.set('__pintar__', defaultProps.__pintar__);
-export type InternalType = 'property' | 'return';
+
+export type InternalType = 'property' | 'return' | 'iterator';
 
 export interface InternalVal extends RuntimeVal {
   family: 'internal';
@@ -137,24 +140,30 @@ export function MK_RETURN(value: RuntimeVal): ReturnVal {
   return MK_INTERNAL({ type: 'return', value }) as ReturnVal;
 }
 
-export function MK_PARSE(value: any): RuntimeVal {
-  if (typeof value == 'string') {
-    if (value.startsWith('$')) return MK_PROPERTY(value.slice(1));
-    if (value.startsWith('@')) return MK_RETURN(MK_STRING(value.slice(1)));
-    return MK_STRING(value);
-  }
+
+export interface IteratorVal extends InternalVal {
+  type: 'iterator';
+  value: RuntimeVal;
+}
+
+export function MK_ITERATOR(value:any): ReturnVal {
+  return MK_INTERNAL({ type: 'iterator', value }) as ReturnVal;
+}
+
+type MK_PARSE = ((value: string) => StringVal)| ((value: any) => RuntimeVal);
+
+export function MK_PARSE(value:any=null): AnyVal {
+  if (typeof value == 'string') return MK_STRING(value);
   if (typeof value == 'number') return MK_NUMBER(value);
   if (typeof value == 'boolean') return MK_BOOLEAN(value);
   if(typeof value == 'function') return MK_FUNCTION_NATIVE(value)
   if (typeof value == 'object') {
+    if (value instanceof RuntimeClassVal) return value as AnyVal;
     if (Buffer.isBuffer(value)) return MK_BUFFER(value)
     if ((value as RuntimeVal).__NATIVO__) return value;
     if (value == null) return MK_NULL();
     if (Array.isArray(value)) return MK_ARRAY_NATIVE(...value.map(MK_PARSE));
-    let entries = Object.entries(value).map(([key, value]) => [
-      key,
-      MK_PARSE(value),
-    ]);
-    return MK_OBJECT(Object.fromEntries(entries));
+    return MK_OBJECT_NATIVE(value);
   }
+  return MK_NULL();
 }
