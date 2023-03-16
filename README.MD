@@ -54,16 +54,20 @@ funcion nombre_de_funcion(argumento_1, argumento_2){
 ```agal
 Mate.PI == 3.14159
 Mate.E == 2.71828
+Mate.I == Mate.raiz(-1)
 Mate.abs(-5) == 5
 Mate.redondear(3.14159) == 3
 Mate.redondear(3.14159, 4) == 3.1416
+Mate.elevado(3,2) == 9
+Mate.raiz(16) == 4
+Mate.raiz(16,4) == 2
 ```
 
 ## Objeto JSON
 ### El objeto JSON contiene las propiedades texto y parsear
 ```agal
 JSON.texto({hola:'mundo'})
-{"hola":"mundo"}
+'{"hola":"mundo"}'
 
 JSON.parsear('{"hola":"mundo"}')
 {hola:'mundo'}
