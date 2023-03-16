@@ -102,6 +102,8 @@ export default function run(
 }
 
 run.file = function (original_path: string, folder: string = '') {
+  if(original_path == './')
+    original_path = `./${INDEX}`;
   if(agal_modules[original_path]){
     const fn = agal_modules[original_path];
     const module = MK_OBJECT({
@@ -111,7 +113,7 @@ run.file = function (original_path: string, folder: string = '') {
     return module;
   }
   const path = betterPath(original_path);
-  const sourceCode = fs.readFileSync(path, 'utf-8');
+  const sourceCode = fs.readFileSync(getPath(path), 'utf-8');
   let module = run(sourceCode, [
     ['nombre', MK_STRING(original_path)],
     ['folder', MK_STRING(path.split('/').slice(0, -1).join('/'))],
