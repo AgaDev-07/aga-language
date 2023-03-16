@@ -176,6 +176,8 @@ export const Mate = {
         0,
         `Se esperaba un número en el primer argumento, pero se recibió "${x}"`
       );
+    if(x.imaginary === 0)
+      return Math.cos(x.value);
     return MK_NUMBER(Math.cos(x.value), Math.cos(x.imaginary));
   },
   tangente(x: NumberRuntime) {
@@ -188,6 +190,7 @@ export const Mate = {
       );
     return MK_NUMBER(Math.tan(x.value), Math.tan(x.imaginary));
   },
+  /*
   base10(x: NumberRuntime) {
     if (!(x instanceof NumberRuntime))
       error(
@@ -205,6 +208,17 @@ export const Mate = {
 
     return [MK_NUMBER(x.value / y, x.imaginary / y), y, m];
   }
+  */
+  entero(x: NumberRuntime) {
+    if (!(x instanceof NumberRuntime))
+      error(
+        ErrorType.InvalidType,
+        0,
+        0,
+        `Se esperaba un número en el primer argumento, pero se recibió "${x}"`
+      );
+    return MK_NUMBER(Math.floor(x.value), Math.floor(x.imaginary));
+  },
 };
 
 export default (env: Environment) => {

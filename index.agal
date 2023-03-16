@@ -1,5 +1,1 @@
-const i = Mate.I;
-const x = 3+4(i);
-
-pintar(Mate.base10(x))
-pintar(Mate.abs(x))
+pintar(global)
