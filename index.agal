@@ -1,4 +1,5 @@
 const i = Mate.I;
-const x = 1+i;
+const x = 3+4(i);
 
-pintar(x*x)
+pintar(Mate.base10(x))
+pintar(Mate.abs(x))

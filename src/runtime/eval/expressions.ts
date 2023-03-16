@@ -17,7 +17,7 @@ import Environment from '../environment';
 import { evaluate } from '../interpreter';
 import { RuntimeVal } from '../values';
 import { ClassVal, ComplexVal, FunctionVal, MK_ARRAY, MK_OBJECT, ObjectVal } from '../values/complex';
-import { MK_PROPERTY } from '../values/internal';
+import { MK_PARSE, MK_PROPERTY } from '../values/internal';
 import {
   PrimitiveVal,
   MK_NULL,
@@ -261,7 +261,7 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
     (node.callee as FunctionDeclaration).identifier ||
     (node.callee as StringLiteral).value ||
     'nulo';
-  let callee = evaluate(node.callee, env) as FunctionVal | ClassVal | NumberVal;
+  let callee = evaluate(node.callee, env) as FunctionVal | ClassVal | NumberRuntime;
 
   if(callee.type == 'clase')
     callee = callee.constructor
@@ -274,13 +274,13 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
     if(!arg){
       error(ErrorType.InvalidSyntax, 0, 0, `No se puede multiplicar ${callee.value} por nulo`);
     }
-    let number = MK_NUMBER(arg.value);
+    let number = MK_NUMBER(arg.value, arg.imaginary);
 
     if(number.value == null){
       error(ErrorType.InvalidSyntax, 0, 0, `No se puede multiplicar ${callee.value} por ${arg.value}`);
     }
 
-    return MK_NUMBER(callee.value * number.value);
+    return callee.multiply(number);
   }
 
   let thisValue:ComplexVal = callee;
@@ -292,5 +292,5 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
 
   let value = callee.execute.call(thisValue, ...args);
 
-  return value || MK_VOID();
+  return MK_PARSE(value || MK_VOID());
 }

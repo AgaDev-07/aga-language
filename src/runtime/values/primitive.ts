@@ -27,7 +27,7 @@ class Primitive extends RuntimeClassVal implements RuntimeVal {
     super();
     this.properties.setAll(props);
   }
-  __pintar__(n: number=0) {
+  __pintar__(n: number = 0) {
     let pintar = this.properties.get('__pintar__');
     return pintar.execute.call(this, n);
   }
@@ -36,11 +36,21 @@ class Primitive extends RuntimeClassVal implements RuntimeVal {
   }
 }
 
+interface NumVal {
+  value: number;
+  imaginary: number;
+  _multiply(other: NumberRuntime): NumVal;
+  __runtime__(): NumberRuntime;
+}
 export class NumberRuntime extends Primitive implements NumberVal {
   type: 'numero' = 'numero';
   declare value: number;
   declare imaginary: number;
-  constructor(value: number | null, _console: string = '', imaginary: number = 0) {
+  constructor(
+    value: number | null,
+    _console: string = '',
+    imaginary: number = 0
+  ) {
     const number = _console || getNumberString(value as number, imaginary);
     super('numero', value, [
       ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.yellow(number))],
@@ -49,25 +59,41 @@ export class NumberRuntime extends Primitive implements NumberVal {
     this.value = value as number;
     this.imaginary = imaginary;
   }
-  _multiply(other: NumberRuntime) {
-    if(this.value == null || other.value == null) return NumberRuntime.NaN;
+  __runtime__() {
+    return this
+  }
+  _multiply(other: NumberRuntime): NumVal {
+    if (this.value == null || other.value == null) return NumberRuntime.NaN;
     let n1 = this.value * other.value;
     let n2 = this.imaginary * other.imaginary;
     let i1 = this.value * other.imaginary;
     let i2 = this.imaginary * other.value;
-    let self = this
-    let num = {value:n1 - n2, imaginary:i1 + i2, _multiply(other:NumberRuntime){
-      return self._multiply.call(num, other)
-    }};
+    let self = this;
+    let num = {
+      value: n1 - n2,
+      imaginary: i1 + i2,
+      _multiply(other: NumberRuntime) {
+        return self._multiply.call(num, other);
+      },
+      __runtime__(){
+        return new NumberRuntime(num.value, '', num.imaginary);
+      }
+    };
     return num;
+  }
+  abs(){
+    let x = this.value;
+    let y = this.imaginary;
+    let z = x*x + y*y
+    return Math.sqrt(z);
   }
   multiply(other: NumberRuntime) {
     let n = this._multiply(other);
-    if(n.value == null) return NumberRuntime.NaN;
+    if (n.value == null) return NumberRuntime.NaN;
     return MK_NUMBER(n.value, n.imaginary);
   }
   divide(other: NumberRuntime) {
-    if(this.value == null || other.value == null) return NumberRuntime.NaN;
+    if (this.value == null || other.value == null) return NumberRuntime.NaN;
     let nv = {
       value: other.value,
       imaginary: -other.imaginary,
@@ -80,7 +106,7 @@ export class NumberRuntime extends Primitive implements NumberVal {
     return MK_NUMBER(n, i);
   }
   modulo(other: NumberRuntime) {
-    if(this.value == null || other.value == null) return NumberRuntime.NaN;
+    if (this.value == null || other.value == null) return NumberRuntime.NaN;
     let nv = {
       value: other.value,
       imaginary: -other.imaginary,
@@ -94,21 +120,21 @@ export class NumberRuntime extends Primitive implements NumberVal {
     return MK_NUMBER(n, i);
   }
   add(other: NumberRuntime) {
-    if(this.value == null || other.value == null) return NumberRuntime.NaN;
+    if (this.value == null || other.value == null) return NumberRuntime.NaN;
     return MK_NUMBER(
       this.value + other.value,
       this.imaginary + other.imaginary
     );
   }
   subtract(other: NumberRuntime) {
-    if(this.value == null || other.value == null) return NumberRuntime.NaN;
+    if (this.value == null || other.value == null) return NumberRuntime.NaN;
     return MK_NUMBER(
       this.value - other.value,
       this.imaginary - other.imaginary
     );
   }
   power(other: NumberRuntime) {
-    if(this.value == null || other.value == null) return NumberRuntime.NaN;
+    if (this.value == null || other.value == null) return NumberRuntime.NaN;
     return MK_NUMBER(Mate.elevado(this, other));
   }
   static NaN: NumberRuntime;
@@ -160,14 +186,18 @@ export interface NumberVal extends PrimitiveVal {
 
 export function getNumberString(value: number, imaginary: number) {
   if (!imaginary) return value.toString();
-  if (!value){
-    if(imaginary == 1) return 'i';
+  if (!value) {
+    if (imaginary == 1) return 'i';
+    if (imaginary == -1) return '-i';
     return imaginary.toString() + 'i';
   }
-  return `${value}${imaginary > 0 ? '+' : ''}${imaginary == 1 ? '' : imaginary}i`;
+  if (imaginary == 1) return value.toString() + '+i';
+  if (imaginary == -1) return value.toString() + '-i';
+  if (imaginary > 0) return value.toString() + '+' + imaginary.toString() + 'i';
+  return value.toString() + imaginary.toString() + 'i';
 }
 
-export function MK_NUMBER(value:number | null = 0, imaginary = 0): NumberVal {
+export function MK_NUMBER(value: number | null = 0, imaginary = 0): NumberRuntime {
   NumberRuntime.NaN ||= new NumberRuntime(null, 'NeN');
   NumberRuntime.Infinity ||= new NumberRuntime(Infinity, 'Infinito');
   NumberRuntime.NegativeInfinity ||= new NumberRuntime(-Infinity, '-Infinito');
@@ -175,9 +205,9 @@ export function MK_NUMBER(value:number | null = 0, imaginary = 0): NumberVal {
   NumberRuntime.One ||= new NumberRuntime(1);
   NumberRuntime.NegativeOne ||= new NumberRuntime(-1);
 
-  if(value == 0 && imaginary == 0) return NumberRuntime.Zero;
-  if(value == 1 && imaginary == 0) return NumberRuntime.One;
-  if(value == -1 && imaginary == 0) return NumberRuntime.NegativeOne;
+  if (value == 0 && imaginary == 0) return NumberRuntime.Zero;
+  if (value == 1 && imaginary == 0) return NumberRuntime.One;
+  if (value == -1 && imaginary == 0) return NumberRuntime.NegativeOne;
 
   if (value !== value || value === null) return NumberRuntime.NaN;
   if (typeof value != 'number') return MK_NUMBER(Number(value));

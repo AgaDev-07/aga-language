@@ -18,6 +18,10 @@ import {
 import { tokenize, Token, TokenType } from './lexer.js';
 import { error, ErrorType } from './error.js';
 
+const zero = {
+  kind: 'NumericLiteral',
+  value: 0,
+};
 export default class Parser {
   private tokens: Token[];
 
@@ -39,7 +43,7 @@ export default class Parser {
     return prev;
   }
 
-  public produceAST(sourceCode: string, isFunction=false): Program {
+  public produceAST(sourceCode: string, isFunction = false): Program {
     this.tokens = tokenize(sourceCode);
     const program: Program = {
       kind: 'Program',
@@ -71,14 +75,20 @@ export default class Parser {
           'No puedes usar "entonces" sin un "si"'
         );
       case TokenType.Retorna:
-        if(!isFunction) error(ErrorType.InvalidSyntax, 0, 0, 'No puedes usar "retorna" fuera de una función')
+        if (!isFunction)
+          error(
+            ErrorType.InvalidSyntax,
+            0,
+            0,
+            'No puedes usar "retorna" fuera de una función'
+          );
         return this.parse_return_stmt();
       default:
         return this.parse_expr();
     }
   }
 
-  private parse_if_stmt(isFunction=false): Stmt {
+  private parse_if_stmt(isFunction = false): Stmt {
     this.expect(TokenType.Si, 'Expected if keyword');
     this.expect(TokenType.OpenParen, 'Expected open parenthesis');
     const condition = this.parse_expr();
@@ -188,21 +198,24 @@ export default class Parser {
     return value;
   }
 
-  private parse_assignment_expr(operator = '', left = this.parse_object_expr()): Expr {
+  private parse_assignment_expr(
+    operator = '',
+    left = this.parse_object_expr()
+  ): Expr {
     if (this.at().type == TokenType.Equals) {
       this.eat(); // Advance the equals token
       operator += '=';
-      if(this.at().type == TokenType.Equals) {
+      if (this.at().type == TokenType.Equals) {
         this.eat(); // Advance the equals token
         operator += '=';
       }
-      if(operator.length >= 2) {
+      if (operator.length >= 2) {
         const right = this.parse_assignment_expr(operator) as BinaryExpr;
         return {
           kind: 'BinaryExpr',
           left,
           operator,
-          right
+          right,
         } as BinaryExpr;
       }
       return {
@@ -228,8 +241,7 @@ export default class Parser {
   }
 
   private parse_object_expr(): Expr {
-    if (this.at().type != TokenType.OpenBrace)
-      return this.parse_array_expr();
+    if (this.at().type != TokenType.OpenBrace) return this.parse_array_expr();
 
     this.eat(); // Advance the open brace token
     const properties: Property[] = [];
@@ -249,7 +261,10 @@ export default class Parser {
         properties.push({ key, kind: 'Property' });
         continue;
       }
-      this.expect(TokenType.Colon, 'No se encontró dos puntos en la propiedad del objeto');
+      this.expect(
+        TokenType.Colon,
+        'No se encontró dos puntos en la propiedad del objeto'
+      );
       const value = this.parse_expr();
       properties.push({ key, value, kind: 'Property' });
       if (this.at().type != TokenType.CloseBrace) {
@@ -267,23 +282,20 @@ export default class Parser {
     if (this.at().type != TokenType.OpenBracket)
       return this.parse_additive_expr();
 
-      this.eat(); // Advance the open brace token
-      const properties: Property[] = [];
+    this.eat(); // Advance the open brace token
+    const properties: Property[] = [];
 
-      while (this.not_eof() && this.at().type != TokenType.CloseBracket) {
-        let key = properties.length.toString();
-        const value = this.parse_expr();
-        properties.push({ key, value, kind: 'Property' });
-        if (this.at().type != TokenType.CloseBracket) {
-          this.expect(
-            TokenType.Comma,
-            'No se encontró coma en la lista'
-          );
-        }
+    while (this.not_eof() && this.at().type != TokenType.CloseBracket) {
+      let key = properties.length.toString();
+      const value = this.parse_expr();
+      properties.push({ key, value, kind: 'Property' });
+      if (this.at().type != TokenType.CloseBracket) {
+        this.expect(TokenType.Comma, 'No se encontró coma en la lista');
       }
+    }
 
-      this.expect(TokenType.CloseBracket, 'No se encontró llave de cierre');
-      return { kind: 'ArrayLiteral', properties } as ArrayLiteral;
+    this.expect(TokenType.CloseBracket, 'No se encontró llave de cierre');
+    return { kind: 'ArrayLiteral', properties } as ArrayLiteral;
   }
 
   private parse_additive_expr(): Expr {
@@ -319,7 +331,7 @@ export default class Parser {
             0,
             'No se puede acceder a una propiedad que no sea un identificador'
           );
-        property.kind = 'PropertyIdentifier'
+        property.kind = 'PropertyIdentifier';
       } else {
         property = this.parse_expr();
         computed = true;
@@ -385,12 +397,10 @@ export default class Parser {
     return left;
   }
 
-  private parse_sqrt_expr():Expr{
+  private parse_sqrt_expr(): Expr {
     let left = this.parse_call_member_expr();
 
-    while (
-      this.at().value == '^'
-    ) {
+    while (this.at().value == '^') {
       const operator = this.eat().value;
       const right = this.parse_call_member_expr();
       left = { kind: 'BinaryExpr', left, right, operator } as BinaryExpr;
@@ -426,15 +436,19 @@ export default class Parser {
         return value;
       case TokenType.Funcion:
         return this.parse_func_decl();
+      case TokenType.BinaryOperator:
+        if (this.at().value == '-' || this.at().value == '+') {
+          this.eat();
+          return {
+            kind: 'BinaryExpr',
+            left: zero,
+            right: this.parse_expr(),
+            operator: '-',
+          } as BinaryExpr;
+        }
 
       default:
-        console.log(this.at());
-        error(
-          ErrorType.InvalidToken,
-          0,
-          0,
-          `Un token inesperado`
-        );
+        error(ErrorType.InvalidToken, 0, 0, `Un token inesperado "${this.at().value}"`);
     }
   }
 }
