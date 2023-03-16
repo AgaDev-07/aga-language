@@ -35,6 +35,9 @@ export const enum TokenType {
   Si,
   Entonces,
   Retorna,
+  Mientras,
+  Romper,
+  Continuar
 }
 
 // reserved keywords
@@ -45,6 +48,9 @@ const KEYWORDS: Record<string, TokenType> = {
   si: TokenType.Si,
   entonces: TokenType.Entonces,
   retorna: TokenType.Retorna,
+  mientras: TokenType.Mientras,
+  romper: TokenType.Romper,
+  continuar: TokenType.Continuar
 };
 
 export interface Token {

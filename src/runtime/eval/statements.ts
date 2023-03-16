@@ -1,4 +1,4 @@
-import { FunctionDeclaration, IfStatement, Program, ReturnStatement, VarDeclaration } from '../../frontend/ast.js';
+import { FunctionDeclaration, IfStatement, Program, ReturnStatement, VarDeclaration, WhileStatement } from '../../frontend/ast.js';
 import Environment from '../environment.js';
 import { evaluate } from '../interpreter.js';
 import { RuntimeVal } from '../values.js';
@@ -34,6 +34,23 @@ export function eval_function_declaration(
     nombre: MK_STRING(declaration.identifier || ''),
   })
   return env.declareVar(declaration.identifier, value);
+}
+export function eval_while_statement(
+  statement: WhileStatement,
+  env: Environment
+): RuntimeVal {
+  let preCondition = evaluate(statement.condition, env) as BooleanVal;
+
+  let condition = MK_BOOLEAN_RUNTIME(preCondition);
+
+  while (condition.value) {
+    const result = evaluate(statement.body, env);
+
+    preCondition = evaluate(statement.condition, env) as BooleanVal;
+    condition = MK_BOOLEAN_RUNTIME(preCondition);
+  }
+
+  return MK_NULL();
 }
 
 export function eval_if_statement(

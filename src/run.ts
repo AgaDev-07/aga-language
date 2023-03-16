@@ -80,7 +80,7 @@ function betterPath(path: string): string {
 export default function run(
   sourceCode: string,
   values: [string, RuntimeVal][] = []
-): ModuleVal {
+) {
   const env = Environment.getGlobalScope();
 
   const modulo = env.lookupVar('modulo') as ModuleVal;
@@ -110,14 +110,15 @@ run.file = function (original_path: string, folder: string = '') {
       exporta: fn(folder),
       nombre: MK_STRING(original_path),
     });
-    return module;
+    return module as unknown as ModuleVal;
   }
   const path = betterPath(original_path);
-  const sourceCode = fs.readFileSync(getPath(path), 'utf-8');
+  const file = getPath(path)
+  const sourceCode = fs.readFileSync(file, 'utf-8');
   let module = run(sourceCode, [
     ['nombre', MK_STRING(original_path)],
     ['folder', MK_STRING(path.split('/').slice(0, -1).join('/'))],
-    ['archivo', MK_STRING(path)],
+    ['archivo', MK_STRING(file)],
   ]);
   return module;
 };

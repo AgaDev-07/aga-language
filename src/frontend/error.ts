@@ -74,6 +74,9 @@ export function error(
     case ErrorType.MathError:
       typeError = 'ErrorMatematico';
       message ||= 'Error matematico';
+    case ErrorType.FileNotFound:
+      typeError = 'ErrorArchivo';
+      message ||= 'Archivo no encontrado';
     default:
       message ||= '¿Error no definido?';
       break;

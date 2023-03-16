@@ -1,10 +1,10 @@
 {
-  "name": "customl",
+  "name": "agal",
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "start": "tsc && node . index"
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",

@@ -1,1 +1,12 @@
-pintar(global)
+def i = 0;
+pintar('3')
+mientras(i!==3){
+  si(i == 2){
+    pintar('especial', i)
+    i = i + 1
+    continuar
+  } entonces {
+    pintar(i)
+    i = i + 1
+  }
+}

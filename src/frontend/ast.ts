@@ -1,10 +1,12 @@
-export type BlockType = 'FunctionDeclaration' | 'IfStatement' | 'ElseStatement';
+export type BlockType = 'FunctionDeclaration' | 'IfStatement' | 'ElseStatement' | 'WhileStatement';
 
 export type NodeType =
   // Statements
   | 'Program'
   | 'VarDeclaration'
   | 'ReturnStatement'
+  | 'BreakStatement'
+  | 'ContinueStatement'
   | BlockType
 
   // Expressions
@@ -48,6 +50,11 @@ export interface FunctionDeclaration extends BlockStatement {
   kind: 'FunctionDeclaration';
   identifier: string;
   params: string[];
+}
+
+export interface WhileStatement extends BlockStatement {
+  kind: 'WhileStatement';
+  condition: Expr;
 }
 
 export interface IfStatement extends BlockStatement {
@@ -133,4 +140,12 @@ export interface ArrayLiteral extends Expr {
 export interface ReturnStatement extends Stmt {
   kind: 'ReturnStatement';
   value?: Expr;
+}
+
+export interface BreakStatement extends Stmt {
+  kind: 'BreakStatement';
+}
+
+export interface ContinueStatement extends Stmt {
+  kind: 'ContinueStatement';
 }

@@ -58,7 +58,7 @@ export default class Parser {
     return program;
   }
 
-  private parse_stmt(isFunction = false): Stmt {
+  private parse_stmt(isFunction = false, isLoop = false): Stmt {
     switch (this.at().type) {
       case TokenType.Def:
       case TokenType.Const:
@@ -66,7 +66,7 @@ export default class Parser {
       case TokenType.Funcion:
         return this.parse_func_decl();
       case TokenType.Si:
-        return this.parse_if_stmt(isFunction);
+        return this.parse_if_stmt(isFunction, isLoop);
       case TokenType.Entonces:
         error(
           ErrorType.InvalidSyntax,
@@ -83,12 +83,39 @@ export default class Parser {
             'No puedes usar "retorna" fuera de una función'
           );
         return this.parse_return_stmt();
+      case TokenType.Mientras:
+        return this.parse_while_stmt();
+      case TokenType.Romper:
+        if (!isLoop)
+          error(
+            ErrorType.InvalidSyntax,
+            0,
+            0,
+            'No puedes usar "romper" fuera de un ciclo'
+          );
+          this.eat();
+        return {
+          kind: 'BreakStatement',
+        };
+      case TokenType.Continuar:
+        if (!isLoop)
+          error(
+            ErrorType.InvalidSyntax,
+            0,
+            0,
+            'No puedes usar "continuar" fuera de un ciclo'
+          );
+        this.eat();
+        return {
+          kind: 'ContinueStatement',
+        };
+
       default:
         return this.parse_expr();
     }
   }
 
-  private parse_if_stmt(isFunction = false): Stmt {
+  private parse_if_stmt(isFunction = false, isLoop = false): Stmt {
     this.expect(TokenType.Si, 'Expected if keyword');
     this.expect(TokenType.OpenParen, 'Expected open parenthesis');
     const condition = this.parse_expr();
@@ -96,7 +123,7 @@ export default class Parser {
     this.expect(TokenType.OpenBrace, 'Expected open brace');
     const body: Stmt[] = [];
     while (this.at().type != TokenType.CloseBrace) {
-      body.push(this.parse_stmt(isFunction));
+      body.push(this.parse_stmt(isFunction, isLoop));
     }
     this.expect(TokenType.CloseBrace, 'Expected close brace');
     let elseStmt: ElseStatement | undefined;
@@ -106,13 +133,13 @@ export default class Parser {
       if (this.at().type == TokenType.Si) {
         elseStmt = {
           kind: 'ElseStatement',
-          body: [this.parse_if_stmt(isFunction)],
+          body: [this.parse_if_stmt(isFunction,isLoop)],
         };
       } else {
         this.expect(TokenType.OpenBrace, 'Expected open brace');
         const elseBody: Stmt[] = [];
         while (this.at().type != TokenType.CloseBrace) {
-          elseBody.push(this.parse_stmt(isFunction));
+          elseBody.push(this.parse_stmt(isFunction,isLoop));
         }
         this.expect(TokenType.CloseBrace, 'Expected close brace');
         elseStmt = {
@@ -159,6 +186,23 @@ export default class Parser {
       kind: 'FunctionDeclaration',
       identifier: name,
       params: args,
+      body,
+    } as Stmt;
+  }
+  private parse_while_stmt(): Stmt {
+    this.expect(TokenType.Mientras, 'Expected while keyword');
+    this.expect(TokenType.OpenParen, 'Expected open parenthesis');
+    const condition = this.parse_expr();
+    this.expect(TokenType.CloseParen, 'Expected close parenthesis');
+    this.expect(TokenType.OpenBrace, 'Expected open brace');
+    const body: Stmt[] = [];
+    while (this.at().type != TokenType.CloseBrace) {
+      body.push(this.parse_stmt(false, true));
+    }
+    this.expect(TokenType.CloseBrace, 'Expected close brace');
+    return {
+      kind: 'WhileStatement',
+      condition,
       body,
     } as Stmt;
   }
@@ -446,9 +490,16 @@ export default class Parser {
             operator: '-',
           } as BinaryExpr;
         }
+      case TokenType.Mientras:
+        return this.parse_while_stmt();
 
       default:
-        error(ErrorType.InvalidToken, 0, 0, `Un token inesperado "${this.at().value}"`);
+        error(
+          ErrorType.InvalidToken,
+          0,
+          0,
+          `Un token inesperado "${this.at().value}"`
+        );
     }
   }
 }

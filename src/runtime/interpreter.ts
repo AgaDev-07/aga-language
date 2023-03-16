@@ -16,6 +16,7 @@ import {
   Stmt,
   StringLiteral,
   VarDeclaration,
+  WhileStatement,
 } from '../frontend/ast.js';
 import { error, ErrorType } from '../frontend/error.js';
 import Environment from './environment.js';
@@ -35,6 +36,7 @@ import {
   eval_program,
   eval_return_statement,
   eval_var_declaration,
+  eval_while_statement,
 } from './eval/statements.js';
 import { RuntimeVal } from './values.js';
 import { MK_NUMBER, MK_STRING } from './values/primitive.js';
@@ -92,6 +94,8 @@ export function evaluate(astNode: Stmt | Stmt[], env: Environment): RuntimeVal {
       return evaluate((astNode as ElseStatement).body, env);
     case 'ReturnStatement':
       return eval_return_statement(astNode as ReturnStatement, env);
+    case 'WhileStatement':
+      return eval_while_statement(astNode as WhileStatement, env);
 
     default:
       console.log(astNode);
