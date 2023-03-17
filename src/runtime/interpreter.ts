@@ -39,7 +39,8 @@ import {
   eval_while_statement,
 } from './eval/statements.js';
 import { RuntimeVal } from './values.js';
-import { MK_NUMBER, MK_STRING } from './values/primitive.js';
+import { MK_BREAK, MK_CONTINUE } from './values/internal.js';
+import { MK_BOOLEAN, MK_NUMBER, MK_STRING } from './values/primitive.js';
 
 export function evaluate(astNode: Stmt | Stmt[], env: Environment): RuntimeVal {
   if (Array.isArray(astNode)) {
@@ -47,6 +48,8 @@ export function evaluate(astNode: Stmt | Stmt[], env: Environment): RuntimeVal {
     for (let i = 0; i < astNode.length; i++) {
       result = evaluate(astNode[i], env);
       if(result.type == 'return') break;
+      if(result.type == 'break') break;
+      if(result.type == 'continue') break;
     }
     return result;
   }
@@ -96,6 +99,10 @@ export function evaluate(astNode: Stmt | Stmt[], env: Environment): RuntimeVal {
       return eval_return_statement(astNode as ReturnStatement, env);
     case 'WhileStatement':
       return eval_while_statement(astNode as WhileStatement, env);
+    case 'BreakStatement':
+      return MK_BREAK()
+    case 'ContinueStatement':
+      return MK_CONTINUE()
 
     default:
       console.log(astNode);

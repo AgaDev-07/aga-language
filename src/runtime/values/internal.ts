@@ -109,7 +109,7 @@ defaultProps.__pintar__.properties.set('aCadena', defaultProps.aCadena);
 
 defaultProps.aCadena.properties.set('__pintar__', defaultProps.__pintar__);
 
-export type InternalType = 'property' | 'return' | 'iterator';
+export type InternalType = 'property' | 'return' | 'iterator' | 'break' | 'continue';
 
 export interface InternalVal extends RuntimeVal {
   family: 'internal';
@@ -121,6 +121,8 @@ export function MK_INTERNAL(value: {
 }): InternalVal {
   return { ...value, family: 'internal' } as RuntimeVal as InternalVal;
 }
+MK_INTERNAL.BREAK = null as BreakVal;
+MK_INTERNAL.CONTINUE = null as ContinueVal;
 
 export interface ObjectPropVal extends InternalVal {
   type: 'property';
@@ -140,6 +142,29 @@ export function MK_RETURN(value: RuntimeVal): ReturnVal {
   return MK_INTERNAL({ type: 'return', value }) as ReturnVal;
 }
 
+export interface BreakVal extends InternalVal {
+  type: 'break';
+}
+
+export function MK_BREAK() {
+  if(MK_INTERNAL.BREAK) return MK_INTERNAL.BREAK;
+  else {
+    MK_INTERNAL.BREAK = MK_INTERNAL({ type: 'break' }) as BreakVal;
+    return MK_INTERNAL.BREAK;
+  }
+}
+
+export interface ContinueVal extends InternalVal {
+  type: 'continue';
+}
+
+export function MK_CONTINUE() {
+  if(MK_INTERNAL.CONTINUE) return MK_INTERNAL.CONTINUE;
+  else {
+    MK_INTERNAL.CONTINUE = MK_INTERNAL({ type: 'continue' }) as ContinueVal;
+    return MK_INTERNAL.CONTINUE;
+  }
+}
 
 export interface IteratorVal extends InternalVal {
   type: 'iterator';

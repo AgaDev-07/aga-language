@@ -48,6 +48,8 @@ export function eval_while_statement(
 
     preCondition = evaluate(statement.condition, env) as BooleanVal;
     condition = MK_BOOLEAN_RUNTIME(preCondition);
+    if(result.type == 'break') break;
+    if(result.type == 'continue') continue;
   }
 
   return MK_NULL();

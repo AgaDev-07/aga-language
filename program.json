@@ -11,19 +11,6 @@
       "identifier": "i"
     },
     {
-      "kind": "CallExpr",
-      "callee": {
-        "kind": "Identifier",
-        "symbol": "pintar"
-      },
-      "args": [
-        {
-          "kind": "StringLiteral",
-          "value": "3"
-        }
-      ]
-    },
-    {
       "kind": "WhileStatement",
       "condition": {
         "kind": "BinaryExpr",
@@ -34,7 +21,7 @@
         "operator": "!==",
         "right": {
           "kind": "NumericLiteral",
-          "value": 3
+          "value": 5
         }
       },
       "body": [
@@ -90,45 +77,48 @@
               }
             },
             {
-              "kind": "ContinueStatement"
+              "kind": "BreakStatement"
             }
-          ],
-          "else": {
-            "kind": "ElseStatement",
-            "body": [
-              {
-                "kind": "CallExpr",
-                "callee": {
-                  "kind": "Identifier",
-                  "symbol": "pintar"
-                },
-                "args": [
-                  {
-                    "kind": "Identifier",
-                    "symbol": "i"
-                  }
-                ]
+          ]
+        },
+        {
+          "kind": "CallExpr",
+          "callee": {
+            "kind": "Identifier",
+            "symbol": "pintar"
+          },
+          "args": [
+            {
+              "kind": "Identifier",
+              "symbol": "i"
+            }
+          ]
+        },
+        {
+          "kind": "AssignmentExpr",
+          "assignee": {
+            "kind": "Identifier",
+            "symbol": "i"
+          },
+          "value": {
+            "kind": "BinaryExpr",
+            "left": {
+              "kind": "Identifier",
+              "symbol": "i"
+            },
+            "right": {
+              "kind": "BinaryExpr",
+              "left": {
+                "kind": "NumericLiteral",
+                "value": 1
               },
-              {
-                "kind": "AssignmentExpr",
-                "assignee": {
-                  "kind": "Identifier",
-                  "symbol": "i"
-                },
-                "value": {
-                  "kind": "BinaryExpr",
-                  "left": {
-                    "kind": "Identifier",
-                    "symbol": "i"
-                  },
-                  "right": {
-                    "kind": "NumericLiteral",
-                    "value": 1
-                  },
-                  "operator": "+"
-                }
-              }
-            ]
+              "right": {
+                "kind": "NumericLiteral",
+                "value": 2
+              },
+              "operator": "/"
+            },
+            "operator": "+"
           }
         }
       ]
