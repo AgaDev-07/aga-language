@@ -39,7 +39,9 @@ export default class Parser {
   }
   private expect(type: TokenType, err: any): Token {
     const prev = this.tokens.shift();
-    if (!prev || prev.type != type) error(ErrorType.InvalidSyntax, 0, 0, err);
+    if (!prev || prev.type != type) {
+      error(ErrorType.InvalidSyntax, 0, 0, err);
+    }
     return prev;
   }
 
@@ -58,7 +60,11 @@ export default class Parser {
     return program;
   }
 
-  private parse_stmt(isFunction = false, isLoop = false): Stmt {
+  private parse_stmt(
+    isFunction = false,
+    isLoop = false,
+    isClassDecl = false
+  ): Stmt {
     switch (this.at().type) {
       case TokenType.Def:
       case TokenType.Const:
@@ -93,7 +99,7 @@ export default class Parser {
             0,
             'No puedes usar "romper" fuera de un ciclo'
           );
-          this.eat();
+        this.eat();
         return {
           kind: 'BreakStatement',
         };
@@ -109,23 +115,34 @@ export default class Parser {
         return {
           kind: 'ContinueStatement',
         };
-
+      case TokenType.Clase:
+        if (isClassDecl)
+          error(
+            ErrorType.InvalidSyntax,
+            0,
+            0,
+            'No puedes declarar una clase dentro de otra'
+          );
+        return this.parse_class_decl();
+      case TokenType.Identifier:
+      case TokenType.Estatico:
+        if (isClassDecl) return this.parse_class_prop();
       default:
         return this.parse_expr();
     }
   }
 
   private parse_if_stmt(isFunction = false, isLoop = false): Stmt {
-    this.expect(TokenType.Si, 'Expected if keyword');
-    this.expect(TokenType.OpenParen, 'Expected open parenthesis');
+    this.expect(TokenType.Si, 'No se encontró "si"');
+    this.expect(TokenType.OpenParen, 'No se encontró "("');
     const condition = this.parse_expr();
-    this.expect(TokenType.CloseParen, 'Expected close parenthesis');
-    this.expect(TokenType.OpenBrace, 'Expected open brace');
+    this.expect(TokenType.CloseParen, 'No se encontró ")"');
+    this.expect(TokenType.OpenBrace, 'No se encontró "{"');
     const body: Stmt[] = [];
     while (this.at().type != TokenType.CloseBrace) {
       body.push(this.parse_stmt(isFunction, isLoop));
     }
-    this.expect(TokenType.CloseBrace, 'Expected close brace');
+    this.expect(TokenType.CloseBrace, 'No se encontró "}"');
     let elseStmt: ElseStatement | undefined;
     if (this.at().type == TokenType.Entonces) {
       this.eat();
@@ -133,15 +150,15 @@ export default class Parser {
       if (this.at().type == TokenType.Si) {
         elseStmt = {
           kind: 'ElseStatement',
-          body: [this.parse_if_stmt(isFunction,isLoop)],
+          body: [this.parse_if_stmt(isFunction, isLoop)],
         };
       } else {
-        this.expect(TokenType.OpenBrace, 'Expected open brace');
+        this.expect(TokenType.OpenBrace, 'No se encontró "{"');
         const elseBody: Stmt[] = [];
         while (this.at().type != TokenType.CloseBrace) {
-          elseBody.push(this.parse_stmt(isFunction,isLoop));
+          elseBody.push(this.parse_stmt(isFunction, isLoop));
         }
-        this.expect(TokenType.CloseBrace, 'Expected close brace');
+        this.expect(TokenType.CloseBrace, 'No se encontró "}"');
         elseStmt = {
           kind: 'ElseStatement',
           body: elseBody,
@@ -157,9 +174,9 @@ export default class Parser {
   }
 
   private parse_return_stmt(): Stmt {
-    this.expect(TokenType.Retorna, 'Expected return keyword');
+    this.expect(TokenType.Retorna, 'No se encontró la palabra clave "retorna"');
     const value = this.parse_expr();
-    this.expect(TokenType.Semicolon, 'Expected semicolon');
+    this.expect(TokenType.Semicolon, 'No se encontró ";"');
     return {
       kind: 'ReturnStatement',
       value,
@@ -167,21 +184,27 @@ export default class Parser {
   }
 
   private parse_func_decl(): Stmt {
-    this.expect(TokenType.Funcion, 'Expected function keyword');
-    const name = this.expect(TokenType.Identifier, 'Expected identifier').value;
-    this.expect(TokenType.OpenParen, 'Expected open parenthesis');
+    this.expect(TokenType.Funcion, 'No se encontró la palabra clave "funcion"');
+    const name = this.expect(
+      TokenType.Identifier,
+      'No se encontro el identificador'
+    ).value;
+    this.expect(TokenType.OpenParen, 'No se encontró "("');
     const args: string[] = [];
     while (this.at().type != TokenType.CloseParen) {
-      args.push(this.expect(TokenType.Identifier, 'Expected identifier').value);
+      args.push(
+        this.expect(TokenType.Identifier, 'No se encontro el identificador')
+          .value
+      );
       if (this.at().type == TokenType.Comma) this.eat();
     }
-    this.expect(TokenType.CloseParen, 'Expected close parenthesis');
-    this.expect(TokenType.OpenBrace, 'Expected open brace');
+    this.expect(TokenType.CloseParen, 'No se encontró ")"');
+    this.expect(TokenType.OpenBrace, 'No se encontró "{"');
     const body: Stmt[] = [];
     while (this.at().type != TokenType.CloseBrace) {
       body.push(this.parse_stmt(true));
     }
-    this.expect(TokenType.CloseBrace, 'Expected close brace');
+    this.expect(TokenType.CloseBrace, 'No se encontró "}"');
     return {
       kind: 'FunctionDeclaration',
       identifier: name,
@@ -189,17 +212,88 @@ export default class Parser {
       body,
     } as Stmt;
   }
+
+  private parse_class_decl(): Stmt {
+    this.expect(TokenType.Clase, 'No se encontró la palabra clave "clase"');
+    const name = this.expect(
+      TokenType.Identifier,
+      'No se encontro el identificador'
+    ).value;
+    this.expect(TokenType.OpenBrace, 'No se encontró "{"');
+    const body: Stmt[] = [];
+    while (this.at().type != TokenType.CloseBrace) {
+      body.push(this.parse_stmt(false, false, true));
+    }
+    this.expect(TokenType.CloseBrace, 'No se encontró "}"');
+    return {
+      kind: 'ClassDeclaration',
+      identifier: name,
+      body,
+    } as Stmt;
+  }
+
+  private parse_class_prop(especial?: TokenType): Stmt {
+    const isStatic = this.at().type == TokenType.Estatico;
+    let extra = (isStatic && !especial) ? this.eat() : especial;
+    const name = this.expect(
+      TokenType.Identifier,
+      'No se encontro el identificador'
+    ).value;
+    const prev = this.eat();
+    if (prev.type === TokenType.OpenParen) {
+      const args: string[] = [];
+      while (this.at().type != TokenType.CloseParen) {
+        args.push(
+          this.expect(TokenType.Identifier, 'No se encontro el identificador')
+            .value
+        );
+        if (this.at().type == TokenType.Comma) this.eat();
+      }
+      this.expect(TokenType.CloseParen, 'No se encontró ")"');
+      this.expect(TokenType.OpenBrace, 'No se encontró "{"');
+      const body: Stmt[] = [];
+      while (this.at().type != TokenType.CloseBrace) {
+        body.push(this.parse_stmt(true));
+      }
+      this.expect(TokenType.CloseBrace, 'No se encontró "}"');
+      return {
+        kind: 'ClassProperty',
+        identifier: name,
+        value: {
+          kind: 'FunctionDeclaration',
+          identifier: name,
+          params: args,
+          body,
+        },
+        extra,
+      } as Stmt;
+    }
+    if (prev.type === TokenType.Equals) {
+      const value = this.parse_expr();
+      return {
+        kind: 'ClassProperty',
+        identifier: name,
+        value,
+        extra
+      } as Stmt;
+    }
+    return this.parse_class_prop(prev.type);
+  }
+
   private parse_while_stmt(): Stmt {
-    this.expect(TokenType.Mientras, 'Expected while keyword');
-    this.expect(TokenType.OpenParen, 'Expected open parenthesis');
+    this.expect(
+      TokenType.Mientras,
+      'No se encontró la palabra clave "mientras"'
+    );
+    this.expect(TokenType.OpenParen, 'No se encontró "("');
     const condition = this.parse_expr();
-    this.expect(TokenType.CloseParen, 'Expected close parenthesis');
-    this.expect(TokenType.OpenBrace, 'Expected open brace');
+    this.expect(TokenType.CloseParen, 'No se encontró ")"');
+    this.expect(TokenType.OpenBrace, 'No se encontró "{"');
     const body: Stmt[] = [];
     while (this.at().type != TokenType.CloseBrace) {
       body.push(this.parse_stmt(false, true));
     }
-    this.expect(TokenType.CloseBrace, 'Expected close brace');
+    this.expect(TokenType.CloseBrace, 'No se encontró "}"');
     return {
       kind: 'WhileStatement',
       condition,
@@ -209,7 +303,10 @@ export default class Parser {
 
   private parse_var_decl(): Stmt {
     const isConstant = this.eat().type == TokenType.Const;
-    const name = this.expect(TokenType.Identifier, 'Expected identifier').value;
+    const name = this.expect(
+      TokenType.Identifier,
+      'No se encontro el identificador'
+    ).value;
     if (this.at().type == TokenType.Semicolon) {
       if (isConstant)
         error(ErrorType.InvalidSyntax, 0, 0, 'Constantes deben tener un valor');
@@ -222,7 +319,7 @@ export default class Parser {
     }
     this.expect(
       TokenType.Equals,
-      'Expected equals token following identifier in variable declaration.'
+      'Las constantes deben tener un valor inicial'
     );
     const declaration = {
       kind: 'VarDeclaration',
@@ -230,10 +327,6 @@ export default class Parser {
       constant: isConstant,
       identifier: name,
     } as VarDeclaration;
-    this.expect(
-      TokenType.Semicolon,
-      'Variable declaration statement must end with semicolon.'
-    );
     return declaration;
   }
 
@@ -379,7 +472,10 @@ export default class Parser {
       } else {
         property = this.parse_expr();
         computed = true;
-        this.expect(TokenType.CloseBracket, 'Missing closing bracket');
+        this.expect(
+          TokenType.CloseBracket,
+          'No se encontró corchete de cierre'
+        );
       }
       object = { kind: 'MemberExpr', object, property, computed } as MemberExpr;
     }
@@ -395,13 +491,10 @@ export default class Parser {
   }
 
   private parse_args(): Expr[] {
-    this.expect(TokenType.OpenParen, 'Expected open parenthesis');
+    this.expect(TokenType.OpenParen, 'No se encontró paréntesis de apertura');
     const args =
       this.at().type == TokenType.CloseParen ? [] : this.parse_arguments_list();
-    this.expect(
-      TokenType.CloseParen,
-      'Missing closing parenthesis inside arguments list'
-    );
+    this.expect(TokenType.CloseParen, 'No se encontró paréntesis de cierre');
     return args;
   }
 

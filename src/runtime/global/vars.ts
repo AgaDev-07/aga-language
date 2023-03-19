@@ -227,7 +227,7 @@ export default (env: Environment) => {
   Mate.PI ||= MK_NUMBER(3.14159);
   Mate.E ||= MK_NUMBER(2.71828);
   return [
-    ['pintar', MK_FUNCTION_NATIVE(pintar, undefined, true)],
+    ['pintar', MK_FUNCTION_NATIVE(pintar, {nombre:MK_STRING('pintar')}, true)],
     ['Mate', MK_PARSE(Mate)],
     [
       'JSON',

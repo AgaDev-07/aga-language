@@ -3,7 +3,7 @@ import { AnyVal, RuntimeClassVal, RuntimeVal } from '../values';
 import { Colors, Properties } from './internal';
 import { Mate } from '../global/vars';
 
-class Primitive extends RuntimeClassVal implements RuntimeVal {
+export class Primitive extends RuntimeClassVal implements RuntimeVal {
   family: 'primitive' = 'primitive';
   properties = new Properties([
     [

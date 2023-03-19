@@ -39,29 +39,32 @@ export function eval_iterable_literal(
 }
 
 export function eval_condition_binary_expr(
-  lhs: PrimitiveVal,
-  rhs: PrimitiveVal,
+  lhs: RuntimeVal,
+  rhs: RuntimeVal,
   operator: string
 ) {
   const not_undefined = lhs.type != undefined && rhs.type != undefined;
   if (!not_undefined) return MK_NULL();
 
+  const lFamily = lhs.family;
+  const rFamily = rhs.family;
+
+  if (lFamily !== rFamily) return MK_BOOLEAN(false);
+  if(lFamily !== 'primitive' || rFamily !== 'primitive'){
+    let r = lhs == rhs;
+    return MK_BOOLEAN(r);
+  }
+
   const lVal = lhs.value;
   const rVal = rhs.value;
 
-  const lType = lhs.type;
-  const rType = rhs.type;
-
   let value: number | boolean;
 
-  if (operator == '==') value = lVal == rVal;
-  else if (operator == '!=') value = lVal != rVal;
-  else if (operator == '&&') value = lVal && rVal;
-  else if (operator == '||') value = lVal || rVal;
-  else if (operator == '===') value = lVal == rVal && lType == rType;
-  else if (operator == '!==') value = lVal != rVal || lType != rType;
+  if (operator == '==') value = lVal === rVal;
+  else if (operator == '!=') value = lVal !== rVal;
   else if (operator == '&') value = lVal & rVal;
   else if (operator == '|') value = lVal | rVal;
+
   if (typeof value == 'number') return MK_NUMBER(value);
   return MK_BOOLEAN(value);
 }
@@ -139,8 +142,8 @@ export function eval_parse_binary_expr(
   if (hasNumber) {
     let lVal = parse(lhs, 'numero') as NumberRuntime;
     let rVal = parse(rhs, 'numero') as NumberRuntime;
-    if (isNeN(lVal) || isNeN(rVal)) return NumberRuntime.NaN;
-    return eval_numeric_binary_expr(lVal, rVal, operator);
+    if (isNeN(lVal) || isNeN(rVal)) {}
+    else return eval_numeric_binary_expr(lVal, rVal, operator);
   }
   if (hasString) {
     let lVal = parse(lhs, 'cadena') as StringVal;
@@ -158,7 +161,7 @@ export function eval_binary_expr(
   const lhs = evaluate(binop.left, env);
   const rhs = evaluate(binop.right, env);
 
-  const isCondition = ['==', '!=', '&', '|', '===', '!==', '&&', '||'].includes(
+  const isCondition = ['==', '!=', '&', '|'].includes(
     binop.operator
   );
 
@@ -263,9 +266,6 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
     'nulo';
   let callee = evaluate(node.callee, env) as FunctionVal | ClassVal | NumberRuntime;
 
-  if(callee.type == 'clase')
-    callee = callee.constructor
-
   const args = node.args.map(arg => evaluate(arg, env));
 
   if(callee.type == 'numero'){
@@ -286,6 +286,13 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
   let thisValue:ComplexVal = callee;
   if(node.callee.kind == 'MemberExpr')
     thisValue = evaluate((node.callee as MemberExpr).object, env) as ComplexVal;
+
+  if(callee.type == 'clase'){
+    callee = callee.constructor;
+    thisValue = (thisValue as ClassVal).instace()
+    callee.execute.call(thisValue, ...args);
+    return thisValue;
+  }
 
   if (callee.type != 'funcion')
     error(ErrorType.InvalidSyntax, 0, 0, `${nameFunction} no es una funcion`);

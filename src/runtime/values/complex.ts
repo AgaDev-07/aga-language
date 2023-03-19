@@ -20,11 +20,14 @@ import Environment from '../environment';
 import { evaluate } from '../interpreter';
 import { AnyVal, RuntimeClassVal, RuntimeVal } from '../values';
 import { Colors, MK_PARSE, Properties } from './internal';
-import { MK_NULL, MK_STRING, NumberVal } from './primitive';
+import { MK_NULL, MK_STRING, NumberVal, StringVal } from './primitive';
 
-const FUNCTION_PROPS: { [key: string]: RuntimeVal } = {};
+const FUNCTION_PROPS: Record<string, RuntimeVal> = {};
+const ARRAY_PROPS: Record<string, RuntimeVal> = {};
+const CLASS_PROPS: Record<string, RuntimeVal> = {};
+const CLASS_INSTANCE_PROPS: Record<string, RuntimeVal> = {};
 
-class Complex extends RuntimeClassVal implements RuntimeVal {
+export class Complex extends RuntimeClassVal implements RuntimeVal {
   family: 'complex' = 'complex';
   properties = new Properties();
   static props = {};
@@ -34,7 +37,7 @@ class Complex extends RuntimeClassVal implements RuntimeVal {
     public parent?: Function,
     values?: any
   ) {
-    super()
+    super();
     let props = Object.entries<RuntimeVal>({ ...Complex.props, ...properties });
 
     props.forEach(([key, value]) => {
@@ -56,16 +59,15 @@ class Complex extends RuntimeClassVal implements RuntimeVal {
 }
 
 Complex.props = {
-  __pintar__: MK_FUNCTION_NATIVE(function (this: ComplexVal,n: number = 0) {
+  __pintar__: MK_FUNCTION_NATIVE(function (this: ComplexVal, n: number = 0) {
     const limit = (this.properties.get('__limite__') as NumberVal).value || 4;
-    if(n>= limit) return Colors.cyan(`[${this.type}]`);
+    if (n >= limit) return Colors.cyan(`[${this.type}]`);
     let str = '{';
     let props = [];
     for (let [key, value] of this.properties) {
-
       if (this == value) {
-        props.push(`${key}: ${Colors.cyan(`[circular *${n+1}]`)}`);
-        str = Colors.cyan(`[circular *${n+1}]`) + ' ' + str;
+        props.push(`${key}: ${Colors.cyan(`[circular *${n + 1}]`)}`);
+        str = Colors.cyan(`[circular *${n + 1}]`) + ' ' + str;
         continue;
       }
 
@@ -84,9 +86,9 @@ Complex.props = {
   __NATIVO__: MK_FUNCTION_NATIVE(function () {
     let obj = {};
     for (let [key, value] of this.properties) {
-      if (value && value.__NATIVO__){
+      if (value && value.__NATIVO__) {
         let _value = value.__NATIVO__();
-        if(_value == undefined) continue;
+        if (_value == undefined) continue;
         obj[key] = _value;
       }
     }
@@ -163,7 +165,7 @@ function unParse(stmt: Stmt): string {
 }
 
 function MK_FUNCTION_PROPS(useProps: boolean) {
-  if(!useProps) return FUNCTION_PROPS;
+  if (!useProps) return FUNCTION_PROPS;
   FUNCTION_PROPS.__pintar__ ||= MK_FUNCTION_NATIVE(function (
     this: FunctionVal,
     n = 0
@@ -174,9 +176,14 @@ function MK_FUNCTION_PROPS(useProps: boolean) {
     let props = [];
     for (let [key, value] of this.properties) {
       if (key == 'nombre') continue;
-      props.push(`${key}: ${value.__pintar__(n+1)}`);
+      props.push(`${key}: ${value.__pintar__(n + 1)}`);
     }
-    let str = props.length > 0 ? ` {\n${'  '.repeat(n + 1)}${props.join(',\n' + '  '.repeat(n + 1))+'\n' + '  '.repeat(n)}}` : '';
+    let str =
+      props.length > 0
+        ? ` {\n${'  '.repeat(n + 1)}${
+            props.join(',\n' + '  '.repeat(n + 1)) + '\n' + '  '.repeat(n)
+          }}`
+        : '';
     return fn + str;
   });
   FUNCTION_PROPS.aCadena ||= MK_FUNCTION_NATIVE(
@@ -196,30 +203,32 @@ function MK_FUNCTION_PROPS(useProps: boolean) {
 }
 
 function MK_ARRAY_PROPS() {
-  return {
-    __pintar__: MK_FUNCTION_NATIVE(function (this: ArrayVal<AnyVal>, n: number) {
-      let str = '[';
-      let list = [];
-      let props = [...this.properties.entries()].sort((a, b) => {
-        let aNum = +a;
-        let bNum = +b;
-        if (aNum == aNum && bNum == bNum) return aNum - bNum;
-        return a[0] < b[0] ? -1 : 1;
-      });
-      for (let [key, value] of props) {
-        if (+key == +key) list.push(value.__pintar__(n + 1));
-        else list.push(`${key}: ${value.__pintar__(n + 1)}`);
-      }
-      if (list.length > 0) {
-        str += '\n' + '  '.repeat(n + 1);
-        let join = ',\n' + '  '.repeat(n + 1);
-        str += list.join(join);
-        str += '\n' + '  '.repeat(n);
-      }
-      str += ']';
-      return str;
-    }),
-    agregar: MK_FUNCTION_NATIVE(
+  (ARRAY_PROPS.__pintar__ ||= MK_FUNCTION_NATIVE(function (
+    this: ArrayVal<AnyVal>,
+    n: number
+  ) {
+    let str = '[';
+    let list = [];
+    let props = [...this.properties.entries()].sort((a, b) => {
+      let aNum = +a;
+      let bNum = +b;
+      if (aNum == aNum && bNum == bNum) return aNum - bNum;
+      return a[0] < b[0] ? -1 : 1;
+    });
+    for (let [key, value] of props) {
+      if (+key == +key) list.push(value.__pintar__(n + 1));
+      else list.push(`${key}: ${value.__pintar__(n + 1)}`);
+    }
+    if (list.length > 0) {
+      str += '\n' + '  '.repeat(n + 1);
+      let join = ',\n' + '  '.repeat(n + 1);
+      str += list.join(join);
+      str += '\n' + '  '.repeat(n);
+    }
+    str += ']';
+    return str;
+  })),
+    (ARRAY_PROPS.agregar ||= MK_FUNCTION_NATIVE(
       function (this: ArrayVal<AnyVal>, value: RuntimeVal) {
         let e = [...this.properties.keys()]
           .map(v => +v)
@@ -232,55 +241,81 @@ function MK_ARRAY_PROPS() {
       },
       { name: MK_STRING('Lista.Agregar') },
       true
-    ),
-    __typeof__: MK_FUNCTION_NATIVE(() => MK_STRING('lista')),
-    __NATIVO__: MK_FUNCTION_NATIVE(function (this: ArrayVal<AnyVal>) {
-      let list = [];
-      let props = [...this.properties.entries()].sort((a, b) => {
-        let aNum = +a;
-        let bNum = +b;
-        if (aNum == aNum && bNum == bNum) return aNum - bNum;
-        return a[0] < b[0] ? -1 : 1;
-      });
-      for (let [key, value] of props) {
-        if (+key == +key) list.push(value.__NATIVO__());
-        else list[key] = value.__NATIVO__();
-      }
-      return list;
-    }),
-  };
+    )),
+    (ARRAY_PROPS.__tipode__ ||= MK_FUNCTION_NATIVE(() => 'lista'));
+  ARRAY_PROPS.__NATIVO__ ||= MK_FUNCTION_NATIVE(function (
+    this: ArrayVal<AnyVal>
+  ) {
+    let list = [];
+    let props = [...this.properties.entries()].sort((a, b) => {
+      let aNum = +a;
+      let bNum = +b;
+      if (aNum == aNum && bNum == bNum) return aNum - bNum;
+      return a[0] < b[0] ? -1 : 1;
+    });
+    for (let [key, value] of props) {
+      if (+key == +key) list.push(value.__NATIVO__());
+      else list[key] = value.__NATIVO__();
+    }
+    return list;
+  });
+  return ARRAY_PROPS;
 }
 
 function MK_CLASS_PROPS() {
-  return {
-    __pintar__: MK_FUNCTION_NATIVE(function (this: ClassVal, n: number) {
-      let name = this.constructor.properties.get('nombre').value;
-      return Colors.cyan(`[Clase ${name}]`)
-    }),
-    __tipode__: MK_FUNCTION_NATIVE(() => MK_STRING('clase')),
-    __NATIVO__: MK_FUNCTION_NATIVE(function (this: ClassVal) {
-      let list = [''];
-      let props = [...this.properties.entries()].sort((a, b) => {
-        let aNum = +a;
-        let bNum = +b;
-        if (aNum == aNum && bNum == bNum) return aNum - bNum;
-        return a[0] < b[0] ? -1 : 1;
-      });
-      for (let [key, value] of props) {
-        if (+key == +key) list.push(value.__NATIVO__());
-        else list[key] = value.__NATIVO__();
-      }
-      return list;
-    }),
-  };
+  CLASS_PROPS.__pintar__ ||= MK_FUNCTION_NATIVE(function (
+    this: ClassVal,
+    n = 0
+  ) {
+    let name = (this.properties.get('nombre') as StringVal).value;
+    return Colors.cyan(`[Clase ${name}]`);
+  });
+  CLASS_PROPS.__tipode__ ||= MK_FUNCTION_NATIVE(() => MK_STRING('clase'));
+  CLASS_PROPS.__NATIVO__ ||= MK_FUNCTION_NATIVE(function (this: ClassVal) {
+    let list = [''];
+    let props = [...this.properties.entries()].sort((a, b) => {
+      let aNum = +a;
+      let bNum = +b;
+      if (aNum == aNum && bNum == bNum) return aNum - bNum;
+      return a[0] < b[0] ? -1 : 1;
+    });
+    for (let [key, value] of props) {
+      if (+key == +key) list.push(value.__NATIVO__());
+      else list[key] = value.__NATIVO__();
+    }
+    return list;
+  });
+
+  return CLASS_PROPS;
 }
+MK_CLASS_PROPS.INSTANCE = function () {
+  CLASS_INSTANCE_PROPS.__pintar__ ||= MK_FUNCTION_NATIVE(function (
+    this: ClassVal,
+    n = 0
+  ) {
+    let clase = this.properties.get('constructor') as FunctionVal;
+    let nombre = (clase.properties.get('nombre') as StringVal).value;
+    let props = [];
+    for (let [key, value] of this.properties) {
+      props.push(`${key}: ${value.__pintar__(n + 1)}`);
+    }
+    let str =
+      props.length > 0
+        ? ` {\n${'  '.repeat(n + 1)}${
+            props.join(',\n' + '  '.repeat(n + 1)) + '\n' + '  '.repeat(n)
+          }}`
+        : '';
+    return nombre + str;
+  });
+  return CLASS_INSTANCE_PROPS;
+};
 
 //#region ComplexTypes
 
 export type entries = { [key: string]: RuntimeVal };
 
-export type extendsObjectType = 'lista' | 'clase' | 'modulo';
-export type ComplexType = 'objeto' | 'funcion' | extendsObjectType;
+export type extendsObjectType = 'lista' | 'funcion' | 'clase' | 'modulo';
+export type ComplexType = 'objeto' | extendsObjectType;
 
 export interface ComplexVal extends Complex {}
 
@@ -297,18 +332,28 @@ export interface ObjectVal extends ComplexVal {
   type: 'objeto';
 }
 
-export function MK_OBJECT_NATIVE(object:Object): ObjectVal {
-  let entries:[string, AnyVal][] = Object.entries(object).map(([key, value]) => [key, MK_PARSE(value)]);
+export function MK_OBJECT_NATIVE(object: Object): ObjectVal {
+  let entries: [string, AnyVal][] = Object.entries(object).map(
+    ([key, value]) => [key, MK_PARSE(value, key)]
+  );
   let obj = MK_COMPLEX('objeto');
   obj.properties.setAll(entries);
   return obj as ObjectVal;
 }
-export function MK_OBJECT(prop: { [key: string]: RuntimeVal } = {}, privateProps: { [key: string]: RuntimeVal } = {}): ObjectVal {
+export function MK_OBJECT(
+  prop: { [key: string]: RuntimeVal } = {},
+  privateProps: { [key: string]: RuntimeVal } = {}
+): ObjectVal {
   let obj = MK_COMPLEX('objeto');
   obj.properties.setAll(Object.entries(prop));
   obj.properties.setAllDefault(Object.entries(privateProps));
   return obj as ObjectVal;
 }
+MK_OBJECT.fromProperties = function (prop: Properties<'objeto', AnyVal>) {
+  let obj = MK_COMPLEX('objeto');
+  obj.properties = prop.copy();
+  return obj as ObjectVal;
+};
 
 export interface ExtendsObjectVal extends ComplexVal {
   type: extendsObjectType;
@@ -316,9 +361,27 @@ export interface ExtendsObjectVal extends ComplexVal {
 }
 
 export interface ModuleVal extends ExtendsObjectVal {
-  type:'modulo'
+  type: 'modulo';
   parent: Function;
 }
+
+export function MK_MODULE(): ModuleVal {
+  let obj = MK_COMPLEX(
+    'modulo',
+    {
+      __pintar__: MK_FUNCTION_NATIVE(function (this: ModuleVal, n: number) {}),
+    },
+    MK_MODULE
+  );
+  obj.properties.setAll(
+    Object.entries({
+      exporta: MK_OBJECT(),
+      hijos: MK_ARRAY(),
+    })
+  );
+  return obj as ModuleVal;
+}
+
 export interface ArrayVal<T extends AnyVal> extends ExtendsObjectVal {
   type: 'lista';
   parent: Function;
@@ -330,13 +393,15 @@ export function MK_ARRAY_NATIVE<T extends AnyVal>(...args: T[]): ArrayVal<T> {
   return MK_ARRAY(Object.fromEntries(_args));
 }
 
-export function MK_ARRAY<T extends AnyVal>(prop: { [key: string]: AnyVal } = {}): ArrayVal<T> {
-  let array = MK_COMPLEX('lista', MK_ARRAY_PROPS(), MK_OBJECT) as ArrayVal<T>;
+export function MK_ARRAY<T extends AnyVal>(
+  prop: { [key: string]: T } = {}
+): ArrayVal<T> {
+  let array = MK_COMPLEX('lista', MK_ARRAY_PROPS(), MK_ARRAY) as ArrayVal<T>;
   array.properties.setAll(Object.entries(prop));
   return array;
 }
 
-export interface FunctionVal extends ComplexVal {
+export interface FunctionVal extends ExtendsObjectVal {
   type: 'funcion';
   values: any;
   body: Stmt[];
@@ -367,6 +432,11 @@ export function MK_FUNCTION(
   let values = {
     execute(this: FunctionVal, ...args: RuntimeVal[]) {
       const calleeEnv = values.env();
+      calleeEnv.declareVar('este', this);
+      calleeEnv.declareVar(
+        'argumentos',
+        MK_ARRAY_NATIVE(...(args as AnyVal[]))
+      );
       values.params.forEach((param, i) => {
         calleeEnv.declareVar(param, args[i] || MK_NULL());
       });
@@ -383,32 +453,49 @@ export function MK_FUNCTION(
   let fn = MK_COMPLEX(
     'funcion',
     MK_FUNCTION_PROPS(useProps),
-    undefined,
+    MK_FUNCTION,
     values
   ) as FunctionVal;
   fn.properties.setAll(Object.entries(prop));
-  return fn
+  return fn;
 }
 
 export interface ClassVal extends ExtendsObjectVal {
+  __prototipo__: ObjectVal;
+  instace(): ObjectVal;
   type: 'clase';
   parent: Function;
   constructor: FunctionVal;
 }
 
 export function MK_CLASS(
-  constructor: FunctionVal,
+  constructor?: FunctionVal,
+  statics: { [key: string]: RuntimeVal } = {},
   prop: { [key: string]: RuntimeVal } = {}
 ): ClassVal {
   let fn = MK_COMPLEX(
     'clase',
     { ...MK_CLASS_PROPS(), constructor },
     MK_FUNCTION,
-    { ...constructor.values, constructor, execute(){constructor.execute(...arguments)} }
+    {
+      ...constructor.values,
+      constructor,
+      execute() {
+        if (!constructor) return;
+        constructor.execute(...arguments);
+      },
+    }
   ) as ClassVal;
-  fn.properties.setAll(Object.entries(prop));
+  fn.__prototipo__ = statics.__prototipo__ = MK_OBJECT(undefined, {
+    ...MK_CLASS_PROPS.INSTANCE(),
+    ...prop,
+    constructor: fn,
+  });
+  fn.instace = function () {
+    return MK_OBJECT.fromProperties(fn.__prototipo__.properties);
+  };
+  fn.properties.setAll(Object.entries(statics));
   return fn;
 }
 
 //#endregion
-

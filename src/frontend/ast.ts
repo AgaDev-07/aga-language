@@ -1,4 +1,4 @@
-export type BlockType = 'FunctionDeclaration' | 'IfStatement' | 'ElseStatement' | 'WhileStatement';
+export type BlockType = 'FunctionDeclaration' | 'IfStatement' | 'ElseStatement' | 'WhileStatement' | 'ClassDeclaration';
 
 export type NodeType =
   // Statements
@@ -23,7 +23,8 @@ export type NodeType =
   | 'IterableLiteral'
   | 'Identifier'
   | 'PropertyIdentifier'
-  | 'BinaryExpr';
+  | 'BinaryExpr'
+  | 'ClassProperty';
 
 export interface Stmt {
   kind: NodeType;
@@ -50,6 +51,19 @@ export interface FunctionDeclaration extends BlockStatement {
   kind: 'FunctionDeclaration';
   identifier: string;
   params: string[];
+}
+
+export interface ClassDeclaration extends BlockStatement {
+  kind: 'ClassDeclaration';
+  identifier: string;
+  body: ClassProperty[];
+}
+
+export interface ClassProperty extends Stmt {
+  kind: 'ClassProperty';
+  identifier: string;
+  value?: Stmt;
+  extra?: Stmt;
 }
 
 export interface WhileStatement extends BlockStatement {

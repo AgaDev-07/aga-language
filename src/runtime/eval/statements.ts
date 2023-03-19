@@ -1,10 +1,25 @@
-import { FunctionDeclaration, IfStatement, Program, ReturnStatement, VarDeclaration, WhileStatement } from '../../frontend/ast.js';
+import {
+  ClassDeclaration,
+  FunctionDeclaration,
+  IfStatement,
+  Program,
+  ReturnStatement,
+  VarDeclaration,
+  WhileStatement,
+} from '../../frontend/ast.js';
 import Environment from '../environment.js';
 import { evaluate } from '../interpreter.js';
 import { RuntimeVal } from '../values.js';
-import { MK_FUNCTION } from '../values/complex.js';
+import { FunctionVal, MK_CLASS, MK_FUNCTION } from '../values/complex.js';
 import { MK_RETURN } from '../values/internal.js';
-import { MK_NULL, BooleanVal, MK_BOOLEAN, MK_VOID, MK_STRING, MK_BOOLEAN_RUNTIME } from '../values/primitive.js';
+import {
+  MK_NULL,
+  BooleanVal,
+  MK_BOOLEAN,
+  MK_VOID,
+  MK_STRING,
+  MK_BOOLEAN_RUNTIME,
+} from '../values/primitive.js';
 
 export function eval_program(program: Program, env: Environment): RuntimeVal {
   let lastEvaluated: RuntimeVal = MK_NULL();
@@ -32,9 +47,41 @@ export function eval_function_declaration(
 ): RuntimeVal {
   const value = MK_FUNCTION(declaration.params, declaration.body, env, {
     nombre: MK_STRING(declaration.identifier || ''),
-  })
+  });
   return env.declareVar(declaration.identifier, value);
 }
+
+export function eval_class_declaration(
+  declaration: ClassDeclaration,
+  env: Environment
+): RuntimeVal {
+  const statics: Record<string, RuntimeVal> = {nombre: MK_STRING(declaration.identifier)};
+  const props = declaration.body
+    .map(prop => {
+      if (prop.extra || prop.identifier == 'constructor') {
+        statics[prop.identifier] = evaluate(prop.value, env);
+        return;
+      }
+      return [prop.identifier, evaluate(prop.value, env)];
+    })
+    .filter(Boolean) as [string, RuntimeVal][];
+  const constructor = statics['constructor'] as FunctionVal;
+
+  const value = MK_CLASS(
+    constructor,
+    statics,
+    Object.fromEntries(props)
+  );
+  return env.declareVar(declaration.identifier, value);
+}
+
+export function eval_class_property(
+  identifier: string,
+  env: Environment
+): RuntimeVal {
+  return env.lookupVar(identifier);
+}
+
 export function eval_while_statement(
   statement: WhileStatement,
   env: Environment
@@ -48,8 +95,8 @@ export function eval_while_statement(
 
     preCondition = evaluate(statement.condition, env) as BooleanVal;
     condition = MK_BOOLEAN_RUNTIME(preCondition);
-    if(result.type == 'break') break;
-    if(result.type == 'continue') continue;
+    if (result.type == 'break') break;
+    if (result.type == 'continue') continue;
   }
 
   return MK_NULL();
@@ -64,7 +111,7 @@ export function eval_if_statement(
 
   if (condition.value) {
     return evaluate(statement.body, env);
-  } else if (statement.else){
+  } else if (statement.else) {
     return evaluate(statement.else, env);
   }
 

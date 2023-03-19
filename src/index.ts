@@ -1,4 +1,3 @@
-import { writeFileSync } from 'fs';
 import { error, ErrorType } from './frontend/error';
 import getArgs from './libs/args';
 import run from './run';
@@ -17,5 +16,3 @@ else if(/^[A-Z][:]/.test(file)){}
 else file = './' + file
 
 let index = run.file(file)
-
-writeFileSync('./program.json', JSON.stringify(index[Symbol.toPrimitive], null, 2))

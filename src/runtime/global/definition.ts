@@ -19,7 +19,9 @@ export default function definition(env: Environment){
   consts(env).forEach(config(true));
 
   const GlobalThis = MK_PARSE(global) as ObjectVal;
+  GlobalThis.properties.set('esteGlobal', GlobalThis);
   GlobalThis.properties.set('global', GlobalThis);
+  GlobalThis.properties.set('este', GlobalThis);
 
   env.declareVar('global', GlobalThis, true, false);
 }

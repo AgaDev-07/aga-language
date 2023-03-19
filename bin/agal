@@ -1,2 +1,5 @@
 #!/usr/bin/env node
+
+process.title = [ 'agal', ...process.argv.slice(2) ].join(' ')
+
 require('../dist/index.js')

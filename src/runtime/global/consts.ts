@@ -1,19 +1,22 @@
+import { error, ErrorType } from '../../frontend/error.js';
 import run from '../../run.js';
 import Environment from '../environment.js';
 import { RuntimeVal } from '../values.js';
 import {
   ArrayVal,
   MK_ARRAY,
+  MK_ARRAY_NATIVE,
   MK_FUNCTION_NATIVE,
+  MK_MODULE,
   MK_OBJECT,
+  MK_OBJECT_NATIVE,
   ModuleVal,
 } from '../values/complex.js';
-import { StringVal } from '../values/primitive.js';
+import { MK_STRING, StringVal } from '../values/primitive.js';
 
-function calcPath(path: string,folder: string) {
-  if (path.startsWith('./'))
-    return folder + '/' + path.slice(2);
-  if (path.startsWith('../')){
+function calcPath(path: string, folder: string) {
+  if (path.startsWith('./')) return folder + '/' + path.slice(2);
+  if (path.startsWith('../')) {
     const pathParts = path.split('/');
     const folderParts = folder.split('/');
     let i = 0;
@@ -24,7 +27,6 @@ function calcPath(path: string,folder: string) {
   }
   return path;
 }
-
 function requiere(env: Environment) {
   return (path: StringVal) => {
     const thisModule = env.lookupVar('modulo') as ModuleVal;
@@ -37,14 +39,33 @@ function requiere(env: Environment) {
   };
 }
 
-export default (env: Environment) =>
-  [
+export default (env: Environment) => {
+  const modulo = MK_MODULE();
+  return [
+    ['modulo', modulo],
+    ['requiere', MK_FUNCTION_NATIVE(requiere(env))],
     [
-      'modulo',
+      'proceso',
       MK_OBJECT({
-        exporta: MK_OBJECT(),
-        hijos: MK_ARRAY(),
+        argv: MK_ARRAY_NATIVE(...process.argv.slice(1).map(MK_STRING)),
+        modulo: modulo,
+        env: MK_OBJECT_NATIVE(process.env as any),
+        salir: MK_FUNCTION_NATIVE((code: number) => process.exit(code)),
+        plataforma: MK_STRING(process.platform),
+        titulo: MK_STRING(process.title),
+        ponerTitulo: MK_FUNCTION_NATIVE((title?: StringVal) => {
+          if (!title) return process.title;
+          if (title.type !== 'cadena')
+            error(
+              ErrorType.InvalidType,
+              0,
+              0,
+              'Se esperaba una cadena como argumento'
+            );
+          process.title = title.value;
+        }),
+        moduloPrimncipal: modulo
       }),
     ],
-    ['requiere', MK_FUNCTION_NATIVE(requiere(env))],
   ] as [string, RuntimeVal][];
+};

@@ -89,6 +89,11 @@ export class Properties<
     entries.forEach(([key, value]) => this.set(key, value));
     return this;
   }
+  copy() {
+    let prop = new Properties([...this.entries()], this.type);
+    prop.default = { ...this.default };
+    return prop;
+  }
 }
 
 defaultProps.__pintar__ = {
@@ -177,11 +182,15 @@ export function MK_ITERATOR(value:any): ReturnVal {
 
 type MK_PARSE = ((value: string) => StringVal)| ((value: any) => RuntimeVal);
 
-export function MK_PARSE(value:any=null): AnyVal {
+export function MK_PARSE(value:any=null, name?:any): AnyVal {
   if (typeof value == 'string') return MK_STRING(value);
   if (typeof value == 'number') return MK_NUMBER(value);
   if (typeof value == 'boolean') return MK_BOOLEAN(value);
-  if(typeof value == 'function') return MK_FUNCTION_NATIVE(value)
+  if(typeof value == 'function'){
+    let fn = MK_FUNCTION_NATIVE(value)
+    if(typeof name == 'string') fn.properties.set('nombre', MK_STRING(name));
+    return fn;
+  }
   if (typeof value == 'object') {
     if (value instanceof RuntimeClassVal) return value as AnyVal;
     if (Buffer.isBuffer(value)) return MK_BUFFER(value)

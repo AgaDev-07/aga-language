@@ -1,10 +1,23 @@
-def i = 0;
-mientras(i!==5){
-  si(i == 2){
-    pintar('especial', i)
-    i = i + 1
-    romper
+clase Persona {
+  tipo = 'Humano'
+  constructor(nombre, edad) {
+    este.nombre = nombre
+    este.edad = edad
   }
-  pintar(i)
-  i = i + 1/2
+  saludar(quien) {
+    pintar(argumentos)
+    si(quien == nulo){
+      este.decir('Hola, soy ' + este.nombre)
+    } entonces {
+      este.decir('Hola ' + quien.nombre + ', soy ' + este.nombre)
+      quien.decir('Mucho gusto ' + este.nombre)
+    }
+  }
+  decir(texto){
+    pintar('<' + este.nombre + '> ' + texto)
+  }
 }
+
+const juan = Persona('Juan', 25)
+const maria = Persona('Maria', 30)
+juan.saludar(maria)

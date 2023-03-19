@@ -2,6 +2,7 @@ import {
   AssignmentExpr,
   BinaryExpr,
   CallExpr,
+  ClassDeclaration,
   ElseStatement,
   FunctionDeclaration,
   Identifier,
@@ -31,6 +32,7 @@ import {
   eval_iterable_literal,
 } from './eval/expressions.js';
 import {
+  eval_class_declaration,
   eval_function_declaration,
   eval_if_statement,
   eval_program,
@@ -86,6 +88,8 @@ export function evaluate(astNode: Stmt | Stmt[], env: Environment): RuntimeVal {
       return eval_var_declaration(astNode as VarDeclaration, env);
     case 'FunctionDeclaration':
       return eval_function_declaration(astNode as FunctionDeclaration, env);
+    case 'ClassDeclaration':
+      return eval_class_declaration(astNode as ClassDeclaration, env);
 
     // Statements
     case 'Program':

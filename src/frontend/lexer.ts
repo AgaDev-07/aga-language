@@ -37,7 +37,9 @@ export const enum TokenType {
   Retorna,
   Mientras,
   Romper,
-  Continuar
+  Continuar,
+  Clase,
+  Estatico,
 }
 
 // reserved keywords
@@ -50,7 +52,9 @@ const KEYWORDS: Record<string, TokenType> = {
   retorna: TokenType.Retorna,
   mientras: TokenType.Mientras,
   romper: TokenType.Romper,
-  continuar: TokenType.Continuar
+  continuar: TokenType.Continuar,
+  clase: TokenType.Clase,
+  estatico: TokenType.Estatico,
 };
 
 export interface Token {
