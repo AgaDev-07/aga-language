@@ -16,7 +16,14 @@ import { error, ErrorType } from '../../frontend/error.js';
 import Environment from '../environment';
 import { evaluate } from '../interpreter';
 import { RuntimeVal } from '../values';
-import { ClassVal, ComplexVal, FunctionVal, MK_ARRAY, MK_OBJECT, ObjectVal } from '../values/complex';
+import {
+  ClassVal,
+  ComplexVal,
+  FunctionVal,
+  MK_ARRAY,
+  MK_OBJECT,
+  ObjectVal,
+} from '../values/complex';
 import { MK_PARSE, MK_PROPERTY } from '../values/internal';
 import {
   PrimitiveVal,
@@ -28,6 +35,7 @@ import {
   MK_VOID,
   StringVal,
   NumberRuntime,
+  MK_BOOLEAN_RUNTIME,
 } from '../values/primitive.js';
 
 export function eval_iterable_literal(
@@ -35,38 +43,7 @@ export function eval_iterable_literal(
   env: Environment
 ): RuntimeVal {
   const identifier = evaluate(iterable.value, env);
-  return identifier.__iterable__()
-}
-
-export function eval_condition_binary_expr(
-  lhs: RuntimeVal,
-  rhs: RuntimeVal,
-  operator: string
-) {
-  const not_undefined = lhs.type != undefined && rhs.type != undefined;
-  if (!not_undefined) return MK_NULL();
-
-  const lFamily = lhs.family;
-  const rFamily = rhs.family;
-
-  if (lFamily !== rFamily) return MK_BOOLEAN(false);
-  if(lFamily !== 'primitive' || rFamily !== 'primitive'){
-    let r = lhs == rhs;
-    return MK_BOOLEAN(r);
-  }
-
-  const lVal = lhs.value;
-  const rVal = rhs.value;
-
-  let value: number | boolean;
-
-  if (operator == '==') value = lVal === rVal;
-  else if (operator == '!=') value = lVal !== rVal;
-  else if (operator == '&') value = lVal & rVal;
-  else if (operator == '|') value = lVal | rVal;
-
-  if (typeof value == 'number') return MK_NUMBER(value);
-  return MK_BOOLEAN(value);
+  return identifier.__iterable__();
 }
 
 export function eval_numeric_binary_expr(
@@ -78,24 +55,20 @@ export function eval_numeric_binary_expr(
   else if (operator === '-') return lhs.subtract(rhs);
   else if (operator === '*') return lhs.multiply(rhs);
   else if (operator === '/') {
-    if (rhs.value == 0 && rhs.imaginary === 0){
-      if(lhs.value > 0) return NumberRuntime.Infinity;
-      else if(lhs.value < 0) return NumberRuntime.NegativeInfinity;
+    if (rhs.value == 0 && rhs.imaginary === 0) {
+      if (lhs.value > 0) return NumberRuntime.Infinity;
+      else if (lhs.value < 0) return NumberRuntime.NegativeInfinity;
       else return NumberRuntime.NaN;
     }
     return lhs.divide(rhs);
   } else if (operator === '%') {
-    if (rhs.value === 0 && rhs.imaginary === 0)
-      return NumberRuntime.NaN;
+    if (rhs.value === 0 && rhs.imaginary === 0) return NumberRuntime.NaN;
     return lhs.modulo(rhs);
-  } else if(operator === '^'){
-    if(rhs.value === 0 && rhs.imaginary === 0)
-      return NumberRuntime.One;
-    if(lhs.value === 0 && lhs.imaginary === 0)
-      return NumberRuntime.Zero;
+  } else if (operator === '^') {
+    if (rhs.value === 0 && rhs.imaginary === 0) return NumberRuntime.One;
+    if (lhs.value === 0 && lhs.imaginary === 0) return NumberRuntime.Zero;
     return lhs.power(rhs);
-  }
-  else {
+  } else {
     error(ErrorType.InvalidOperation, 0, 0, `Operador "${operator}" no valido`);
   }
 }
@@ -142,8 +115,8 @@ export function eval_parse_binary_expr(
   if (hasNumber) {
     let lVal = parse(lhs, 'numero') as NumberRuntime;
     let rVal = parse(rhs, 'numero') as NumberRuntime;
-    if (isNeN(lVal) || isNeN(rVal)) {}
-    else return eval_numeric_binary_expr(lVal, rVal, operator);
+    if (isNeN(lVal) || isNeN(rVal)) {
+    } else return eval_numeric_binary_expr(lVal, rVal, operator);
   }
   if (hasString) {
     let lVal = parse(lhs, 'cadena') as StringVal;
@@ -161,16 +134,34 @@ export function eval_binary_expr(
   const lhs = evaluate(binop.left, env);
   const rhs = evaluate(binop.right, env);
 
-  const isCondition = ['==', '!=', '&', '|'].includes(
-    binop.operator
-  );
+  if (binop.operator == '==')
+    if (lhs.type == 'numero' && rhs.type == 'numero')
+      return MK_BOOLEAN(
+        lhs.value == rhs.value &&
+          (lhs as NumberRuntime).imaginary == (rhs as NumberRuntime).imaginary
+      );
+    else if (lhs.type != rhs.type) return MK_BOOLEAN(false);
+    else if (lhs.family == 'primitive')
+      return MK_BOOLEAN(lhs.value == rhs.value);
+    else return MK_BOOLEAN(lhs == rhs);
+  if (binop.operator == '!=') {
+    if (lhs.type == 'numero' && rhs.type == 'numero')
+      return MK_BOOLEAN(
+        lhs.value != rhs.value ||
+          (lhs as NumberRuntime).imaginary != (rhs as NumberRuntime).imaginary
+      );
+    else if (lhs.type != rhs.type) return MK_BOOLEAN(true);
+    else if (lhs.family == 'primitive')
+      return MK_BOOLEAN(lhs.value != rhs.value);
+    else return MK_BOOLEAN(lhs != rhs);
+  }
 
-  if (isCondition)
-    return eval_condition_binary_expr(
-      lhs as PrimitiveVal,
-      rhs as PrimitiveVal,
-      binop.operator
-    );
+  if (binop.operator == '&')
+    if (MK_BOOLEAN_RUNTIME(lhs).value) return rhs;
+    else return lhs;
+  if (binop.operator == '|')
+    if (MK_BOOLEAN_RUNTIME(lhs).value) return lhs;
+    else return rhs;
 
   return eval_parse_binary_expr(
     lhs as PrimitiveVal,
@@ -252,7 +243,7 @@ export function eval_member_expr(
 
   const prop = evaluate(node.property, env);
   let name = (prop as StringVal).value;
-  if(typeof name == 'number') name = `${name}`;
+  if (typeof name == 'number') name = `${name}`;
 
   const value = obj.properties.get(name);
   return value || MK_NULL();
@@ -264,33 +255,46 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
     (node.callee as FunctionDeclaration).identifier ||
     (node.callee as StringLiteral).value ||
     'nulo';
-  let callee = evaluate(node.callee, env) as FunctionVal | ClassVal | NumberRuntime;
+  let callee = evaluate(node.callee, env) as
+    | FunctionVal
+    | ClassVal
+    | NumberRuntime;
 
   const args = node.args.map(arg => evaluate(arg, env));
 
-  if(callee.type == 'numero'){
+  if (callee.type == 'numero') {
     let arg = args[0] as NumberVal;
 
-    if(!arg){
-      error(ErrorType.InvalidSyntax, 0, 0, `No se puede multiplicar ${callee.value} por nulo`);
+    if (!arg) {
+      error(
+        ErrorType.InvalidSyntax,
+        0,
+        0,
+        `No se puede multiplicar ${callee.value} por nulo`
+      );
     }
     let number = MK_NUMBER(arg.value, arg.imaginary);
 
-    if(number.value == null){
-      error(ErrorType.InvalidSyntax, 0, 0, `No se puede multiplicar ${callee.value} por ${arg.value}`);
+    if (number.value == null) {
+      error(
+        ErrorType.InvalidSyntax,
+        0,
+        0,
+        `No se puede multiplicar ${callee.value} por ${arg.value}`
+      );
     }
 
     return callee.multiply(number);
   }
 
-  let thisValue:ComplexVal = callee;
-  if(node.callee.kind == 'MemberExpr')
+  let thisValue: ComplexVal = callee;
+  if (node.callee.kind == 'MemberExpr')
     thisValue = evaluate((node.callee as MemberExpr).object, env) as ComplexVal;
 
-  if(callee.type == 'clase'){
+  if (callee.type == 'clase') {
     callee = callee.constructor;
-    thisValue = (thisValue as ClassVal).instace()
-    callee.execute.call(thisValue, ...args);
+    thisValue = (thisValue as ClassVal).instace();
+    thisValue ||= callee.execute.call(thisValue, ...args);
     return thisValue;
   }
 

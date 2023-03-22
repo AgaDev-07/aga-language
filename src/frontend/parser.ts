@@ -367,11 +367,21 @@ export default class Parser {
     }
     if (this.at().type == TokenType.Or) {
       this.eat(); // Advance the or token
-      return this.parse_assignment_expr('|', left) as BinaryExpr;
+      return {
+        kind: 'BinaryExpr',
+        left,
+        operator: '|',
+        right: this.parse_object_expr(),
+      } as BinaryExpr;
     }
     if (this.at().type == TokenType.And) {
       this.eat(); // Advance the and token
-      return this.parse_assignment_expr('&', left) as BinaryExpr;
+      return {
+        kind: 'BinaryExpr',
+        left,
+        operator: '&',
+        right: this.parse_object_expr(),
+      } as BinaryExpr;
     }
 
     return left;
@@ -486,8 +496,7 @@ export default class Parser {
     const args = [this.parse_expr()];
     while (this.not_eof() && this.at().type == TokenType.Comma && this.eat()) {
       args.push(this.parse_assignment_expr());
-    }
-    return args;
+    }    return args;
   }
 
   private parse_args(): Expr[] {

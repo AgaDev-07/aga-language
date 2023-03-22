@@ -17,6 +17,7 @@ import {
   VarDeclaration,
 } from '../../frontend/ast';
 import Environment from '../environment';
+import { getObjeto } from '../global/clases';
 import { evaluate } from '../interpreter';
 import { AnyVal, RuntimeClassVal, RuntimeVal } from '../values';
 import { Colors, MK_PARSE, Properties } from './internal';
@@ -24,6 +25,7 @@ import { MK_NULL, MK_STRING, NumberVal, StringVal } from './primitive';
 
 const FUNCTION_PROPS: Record<string, RuntimeVal> = {};
 const ARRAY_PROPS: Record<string, RuntimeVal> = {};
+const OBJECT_PROPS: Record<string, RuntimeVal> = {};
 const CLASS_PROPS: Record<string, RuntimeVal> = {};
 const CLASS_INSTANCE_PROPS: Record<string, RuntimeVal> = {};
 
@@ -203,7 +205,7 @@ function MK_FUNCTION_PROPS(useProps: boolean) {
 }
 
 function MK_ARRAY_PROPS() {
-  (ARRAY_PROPS.__pintar__ ||= MK_FUNCTION_NATIVE(function (
+  ARRAY_PROPS.__pintar__ ||= MK_FUNCTION_NATIVE(function (
     this: ArrayVal<AnyVal>,
     n: number
   ) {
@@ -227,22 +229,22 @@ function MK_ARRAY_PROPS() {
     }
     str += ']';
     return str;
-  })),
-    (ARRAY_PROPS.agregar ||= MK_FUNCTION_NATIVE(
-      function (this: ArrayVal<AnyVal>, value: RuntimeVal) {
-        let e = [...this.properties.keys()]
-          .map(v => +v)
-          .filter(v => v == v)
-          .sort((a, b) => a - b)
-          .pop();
-        let index = e == undefined ? 0 : e + 1;
-        this.properties.set(index.toString(), value);
-        return this;
-      },
-      { name: MK_STRING('Lista.Agregar') },
-      true
-    )),
-    (ARRAY_PROPS.__tipode__ ||= MK_FUNCTION_NATIVE(() => 'lista'));
+  });
+  ARRAY_PROPS.agregar ||= MK_FUNCTION_NATIVE(
+    function (this: ArrayVal<AnyVal>, value: RuntimeVal) {
+      let e = [...this.properties.keys()]
+        .map(v => +v)
+        .filter(v => v == v)
+        .sort((a, b) => a - b)
+        .pop();
+      let index = e == undefined ? 0 : e + 1;
+      this.properties.set(index.toString(), value);
+      return this;
+    },
+    { name: MK_STRING('Lista.Agregar') },
+    true
+  );
+  ARRAY_PROPS.__tipode__ ||= MK_FUNCTION_NATIVE(() => 'lista');
   ARRAY_PROPS.__NATIVO__ ||= MK_FUNCTION_NATIVE(function (
     this: ArrayVal<AnyVal>
   ) {
@@ -259,6 +261,23 @@ function MK_ARRAY_PROPS() {
     }
     return list;
   });
+  ARRAY_PROPS.aCadena ||= MK_FUNCTION_NATIVE(
+    function (this: ArrayVal<AnyVal>) {
+      let list = [];
+      let props = [...this.properties.entries()].sort((a, b) => {
+        let aNum = +a;
+        let bNum = +b;
+        if (aNum == aNum && bNum == bNum) return aNum - bNum;
+        return a[0] < b[0] ? -1 : 1;
+      });
+      for (let [key, value] of props) {
+        if (+key == +key) list.push(value.aCadena());
+        else list[key] = value.aCadena();
+      }
+      return list.join(', ');
+    },
+    { name: MK_STRING('aCadena') }
+  );
   return ARRAY_PROPS;
 }
 
@@ -285,7 +304,13 @@ function MK_CLASS_PROPS() {
     }
     return list;
   });
-
+  CLASS_PROPS.aCadena ||= MK_FUNCTION_NATIVE(
+    function (this: ClassVal) {
+      let name = (this.properties.get('nombre') as StringVal).value;
+      return MK_STRING(`[Clase ${name}]`);
+    },
+    { name: MK_STRING('aCadena') }
+  );
   return CLASS_PROPS;
 }
 MK_CLASS_PROPS.INSTANCE = function () {
@@ -309,6 +334,20 @@ MK_CLASS_PROPS.INSTANCE = function () {
   });
   return CLASS_INSTANCE_PROPS;
 };
+
+function MK_OBJECT_PROPS(){
+  OBJECT_PROPS.aCadena ||= MK_FUNCTION_NATIVE(
+    function (this: ObjectVal) {
+      let clase = this.properties.get('constructor') as FunctionVal;
+      let nombre = (clase.properties.get('nombre') as StringVal).value;
+      return `[Objeto ${nombre}]`
+    },
+    { name: MK_STRING('aCadena') }
+  );
+  OBJECT_PROPS.__tipode__ ||= MK_FUNCTION_NATIVE(() => MK_STRING('objeto'));
+  OBJECT_PROPS.constructor ||= getObjeto()
+  return OBJECT_PROPS;
+}
 
 //#region ComplexTypes
 
@@ -346,7 +385,7 @@ export function MK_OBJECT(
 ): ObjectVal {
   let obj = MK_COMPLEX('objeto');
   obj.properties.setAll(Object.entries(prop));
-  obj.properties.setAllDefault(Object.entries(privateProps));
+  obj.properties.setAllDefault(Object.entries({...MK_OBJECT_PROPS(),...privateProps}));
   return obj as ObjectVal;
 }
 MK_OBJECT.fromProperties = function (prop: Properties<'objeto', AnyVal>) {
@@ -493,6 +532,32 @@ export function MK_CLASS(
   });
   fn.instace = function () {
     return MK_OBJECT.fromProperties(fn.__prototipo__.properties);
+  };
+  fn.properties.setAll(Object.entries(statics));
+  return fn;
+}
+
+export function MK_CLASS_NATIVE(
+  native: Function,
+  statics: Record<string, RuntimeVal> = {}
+): ClassVal {
+  let constructor = MK_FUNCTION_NATIVE(native);
+  let fn = MK_COMPLEX(
+    'clase',
+    { ...MK_CLASS_PROPS(), constructor },
+    MK_FUNCTION,
+    {
+      ...constructor.values,
+      constructor,
+      execute() {
+        if (!constructor) return;
+        constructor.execute(...arguments);
+      },
+    }
+  ) as ClassVal;
+
+  fn.instace = function () {
+    return null as any;
   };
   fn.properties.setAll(Object.entries(statics));
   return fn;

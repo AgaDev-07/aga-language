@@ -8,20 +8,16 @@ import {
   ArrayVal,
   MK_CLASS,
   MK_FUNCTION,
+  MK_CLASS_NATIVE,
+  MK_OBJECT_NATIVE,
 } from '../values/complex.js';
-import { MK_PARSE } from '../values/internal.js';
-import { MK_BOOLEAN, MK_NUMBER, MK_STRING, StringVal } from '../values/primitive.js';
+import { MK_PARSE, MK_PARSE_TYPE } from '../values/internal.js';
+import { MK_BOOLEAN, MK_BOOLEAN_RUNTIME, MK_NUMBER, MK_STRING, StringVal } from '../values/primitive.js';
 
-function getObjeto() {
-  let constructor = MK_FUNCTION_NATIVE(
-    function (value: any = {}) {
-      return MK_OBJECT(value);
-    },
-    { nombre: MK_STRING('Objeto') },
-    true
-  );
-
+export function getObjeto() {
+  if(getObjeto.value) return getObjeto.value;
   let props = {
+    nombre: MK_STRING('Objeto'),
     claves: MK_FUNCTION_NATIVE(
       function (object: RuntimeVal) {
         let obj = object.__NATIVO__();
@@ -55,41 +51,38 @@ function getObjeto() {
       },
       { nombre: MK_STRING('Objeto.desdePares') },
       true
-    ),
+    )
   };
 
-  return MK_CLASS(constructor, props);
+  getObjeto.value = MK_CLASS_NATIVE(function(obj:RuntimeVal){
+    return MK_OBJECT_NATIVE({...obj.__NATIVO__()})
+  }, props);
+  return getObjeto.value;
 }
-function getFuncion() {
-  let constructor = MK_FUNCTION_NATIVE(
-    function (...args: StringVal[]) {
-      const [sourceCode, ..._params] = args.reverse();
-      const params = _params.reverse().map(param => param.value);
-
-      const env = Environment.getGlobalScope();
-      const parser = new Parser();
-      const program = parser.produceAST(sourceCode.value, true);
-
-      return MK_FUNCTION(params, program.body, env);
-    },
-    { nombre: MK_STRING('Funcion') },
-    true
-  );
-
-  let props = {};
-
-  return MK_CLASS(constructor, props);
-}
-function getLista() {
-  let constructor = MK_FUNCTION_NATIVE(
-    function (...args: AnyVal[]) {
-      return MK_ARRAY_NATIVE(...args);
-    },
-    { nombre: MK_STRING('Lista') },
-    true
-  );
-
+getObjeto.value = null;
+export function getFuncion() {
+  if(getFuncion.value) return getFuncion.value;
   let props = {
+    nombre: MK_STRING('Funcion'),
+  };
+
+  getFuncion.value = MK_CLASS_NATIVE(function(...args: StringVal[]) {
+    const [sourceCode, ..._params] = args.reverse();
+    const params = _params.reverse().map(param => param.value);
+
+    const env = Environment.getGlobalScope();
+    const parser = new Parser();
+    const program = parser.produceAST(sourceCode.value, true);
+
+    return MK_FUNCTION(params, program.body, env);
+  }, props);
+  return getFuncion.value;
+}
+getFuncion.value = null;
+export function getLista() {
+  if(getLista.value) return getLista.value;
+  let props = {
+    nombre: MK_STRING('Lista'),
     desde: MK_FUNCTION_NATIVE(
       function (...args: AnyVal[]) {
         return MK_ARRAY_NATIVE(...args);
@@ -106,30 +99,20 @@ function getLista() {
     ),
   };
 
-  return MK_CLASS(constructor, props);
+  getLista.value = MK_CLASS_NATIVE(()=>MK_ARRAY_NATIVE(...arguments), props);
+  return getLista.value;
 }
-function getBooleano(){
-  let constructor = MK_FUNCTION_NATIVE(
-    function (value: boolean) {
-      return MK_BOOLEAN(value)
-    },
-    { nombre: MK_STRING('Buleano') },
-    true
-  );
-
+getLista.value = null;
+export function getBooleano(){
+  if(getBooleano.value) return getBooleano.value;
   let props = {};
 
-  return MK_CLASS(constructor, props);
+  getBooleano.value = MK_CLASS_NATIVE(MK_BOOLEAN_RUNTIME, props);
+  return getBooleano.value;
 }
-function getNumero(){
-  let constructor = MK_FUNCTION_NATIVE(
-    function (value: number) {
-      return MK_NUMBER(value)
-    },
-    { nombre: MK_STRING('Numero') },
-    true
-  );
-
+getBooleano.value = null;
+export function getNumero(){
+  if(getNumero.value) return getNumero.value;
   let props = {
     esNeN: MK_FUNCTION_NATIVE(
       function (value: AnyVal) {
@@ -171,8 +154,10 @@ function getNumero(){
     ),
   };
 
-  return MK_CLASS(constructor, props);
+  getNumero.value = MK_CLASS_NATIVE((v:AnyVal)=>MK_PARSE_TYPE(v, 'numero'), props);
+  return getNumero.value;
 }
+getNumero.value = null;
 
 export default (env: Environment) => [
   ['Objeto', getObjeto()],

@@ -19,6 +19,8 @@ export interface RuntimeVal{
   __pintar__: (n?:number) => string;
   __NATIVO__: () => any;
   __iterable__: () => IteratorVal;
+  aCadena: () => string;
+  aNumero: () => number;
 }
 
 export class RuntimeClassVal{
@@ -28,4 +30,30 @@ export class RuntimeClassVal{
       return iterable.execute.call(this);
     }
   };
+  __pintar__(){
+    let pintar = (this as unknown as RuntimeVal).properties.get('__pintar__');
+    if(pintar.type === 'funcion'){
+      return pintar.execute.call(this);
+    }
+  };
+  __NATIVO__(){
+    let nativo = (this as unknown as RuntimeVal).properties.get('__NATIVO__');
+    if(nativo.type === 'funcion'){
+      return nativo.execute.call(this);
+    }
+  }
+  aCadena(){
+    let aCadena = (this as unknown as RuntimeVal).properties.get('aCadena');
+    if(aCadena.type === 'funcion'){
+      return aCadena.execute.call(this);
+    }
+    return '<instancia de ' + (this as unknown as RuntimeVal).properties.get('nombre').type + '>';
+  }
+  aNumero(){
+    let aNumero = (this as unknown as RuntimeVal).properties.get('aNumero');
+    if(aNumero.type === 'funcion'){
+      return aNumero.execute.call(this);
+    }
+    return NaN;
+  }
 }

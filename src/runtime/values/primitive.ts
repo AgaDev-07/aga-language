@@ -173,10 +173,13 @@ export interface NullVal extends PrimitiveVal {
 }
 
 export function MK_NULL(): NullVal {
-  return MK_PRIMITIVE(null, 'nulo', [
+  if(MK_NULL.value) return MK_NULL.value;
+  MK_NULL.value =  MK_PRIMITIVE(null, 'nulo', [
     ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.whiteBright('nulo'))],
   ]) as NullVal;
+  return MK_NULL.value;
 }
+MK_NULL.value = null;
 
 export interface NumberVal extends PrimitiveVal {
   type: 'numero';

@@ -1,23 +1,4 @@
-clase Persona {
-  tipo = 'Humano'
-  constructor(nombre, edad) {
-    este.nombre = nombre
-    este.edad = edad
-  }
-  saludar(quien) {
-    pintar(argumentos)
-    si(quien == nulo){
-      este.decir('Hola, soy ' + este.nombre)
-    } entonces {
-      este.decir('Hola ' + quien.nombre + ', soy ' + este.nombre)
-      quien.decir('Mucho gusto ' + este.nombre)
-    }
-  }
-  decir(texto){
-    pintar('<' + este.nombre + '> ' + texto)
-  }
-}
+def lista = [0, 1, 2]
+def obj = Funcion('x', 'pintar(x)')
 
-const juan = Persona('Juan', 25)
-const maria = Persona('Maria', 30)
-juan.saludar(maria)
+obj(Objeto(lista))

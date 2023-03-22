@@ -12,6 +12,7 @@ import {
 } from './complex.js';
 import {
   MK_BOOLEAN,
+  MK_BOOLEAN_RUNTIME,
   MK_BUFFER,
   MK_NULL,
   MK_NUMBER,
@@ -52,7 +53,7 @@ type propsDefault<T extends AnyVal> = {
 } & {
   [key in ValueType]: {
     __pintar__: FunctionVal;
-    aTexto: FunctionVal & { execute(): StringVal };
+    aCadena: FunctionVal & { execute(): StringVal };
   };
 } & {
   [key in ValueType]: {
@@ -199,5 +200,18 @@ export function MK_PARSE(value:any=null, name?:any): AnyVal {
     if (Array.isArray(value)) return MK_ARRAY_NATIVE(...value.map(MK_PARSE));
     return MK_OBJECT_NATIVE(value);
   }
+  return MK_NULL();
+}
+
+export function MK_PARSE_TYPE(value: AnyVal, type:AnyVal['type']){
+  if(value.type == type) return value;
+  if(type == 'cadena') return MK_STRING(value.aCadena().value);
+  if(type == 'numero') return MK_NUMBER(value.aNumero().value);
+  if(type == 'booleano') return MK_BOOLEAN_RUNTIME(value)
+  if(type == 'lista') return MK_ARRAY_NATIVE(value);
+  if(type == 'objeto') return MK_OBJECT_NATIVE(value);
+  if(type == 'nulo') return MK_NULL();
+  if(type == 'funcion') return MK_FUNCTION_NATIVE(()=>{});
+  if(type == 'buffer') return MK_BUFFER(Buffer.from(''));
   return MK_NULL();
 }
