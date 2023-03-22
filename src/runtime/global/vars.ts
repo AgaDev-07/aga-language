@@ -1,6 +1,6 @@
 import { error, ErrorType } from '../../frontend/error.js';
 import Environment from '../environment.js';
-import { AnyVal, RuntimeVal } from '../values.js';
+import { AnyVal, RuntimeClassVal, RuntimeVal } from '../values.js';
 import {
   ArrayVal,
   FunctionVal,
@@ -21,7 +21,12 @@ import clases from './clases.js';
 
 function pintar() {
   const args = [...arguments] as RuntimeVal[];
-  const values = args.map(arg => arg.__pintar__());
+  const values = args.map(arg =>{
+    let v = arg.__pintar__() as RuntimeClassVal | string;
+    if(v instanceof RuntimeClassVal) v = v.__native__();
+    if(typeof v === 'string') return v;
+    error(ErrorType.InvalidType, 0, 0, `La funcion "__pintar__" debe devolver una cadena`)
+  });
   process.stdout.write(values.join(' ') + '\n');
 }
 export const Mate = {
@@ -239,7 +244,7 @@ export default (env: Environment) => {
             spaces = 0
           ) {
             let agalo = '';
-            let v = value.__NATIVO__();
+            let v = value.__native__();
 
             agalo += JSON.stringify(v, null, spaces);
             return MK_STRING(agalo);

@@ -31,7 +31,7 @@ export class Primitive extends RuntimeClassVal implements RuntimeVal {
     let pintar = this.properties.get('__pintar__');
     return pintar.execute.call(this, n);
   }
-  __NATIVO__() {
+  __native__() {
     return this.value;
   }
 }

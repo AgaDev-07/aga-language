@@ -17,7 +17,7 @@ export interface RuntimeVal{
   properties: Properties<this['type']>;
   value?: any;
   __pintar__: (n?:number) => string;
-  __NATIVO__: () => any;
+  __native__: () => any;
   __iterable__: () => IteratorVal;
   aCadena: () => string;
   aNumero: () => number;
@@ -36,8 +36,8 @@ export class RuntimeClassVal{
       return pintar.execute.call(this);
     }
   };
-  __NATIVO__(){
-    let nativo = (this as unknown as RuntimeVal).properties.get('__NATIVO__');
+  __native__(){
+    let nativo = (this as unknown as RuntimeVal).properties[Symbol.toPrimitive]
     if(nativo.type === 'funcion'){
       return nativo.execute.call(this);
     }

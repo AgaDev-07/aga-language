@@ -7,7 +7,7 @@ import { error, ErrorType } from '../frontend/error';
 
 type FileReadType = StringVal & {
   value:'texto' | 'buffer'
-  __NATIVO__():'texto' | 'buffer'
+  __native__():'texto' | 'buffer'
 }
 
 const defaultFileReadType = MK_STRING('texto') as FileReadType;

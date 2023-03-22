@@ -121,11 +121,22 @@ export interface InternalVal extends RuntimeVal {
   family: 'internal';
 }
 
-export function MK_INTERNAL(value: {
-  type: InternalType;
-  [key: string]: any;
-}): InternalVal {
-  return { ...value, family: 'internal' } as RuntimeVal as InternalVal;
+export class Internal extends RuntimeClassVal implements InternalVal {
+  family: 'internal' = 'internal';
+  properties: Properties<this['type'], AnyVal>;
+  constructor(public type: InternalType, public value: any) {
+    super();
+  }
+  __pintar__() {
+    return Colors.magenta(`[Valor interno: ${this.type}]`);
+  }
+  __native__() {
+    return this.value.__native__ ? this.value.__native__() : this.value;
+  }
+}
+
+export function MK_INTERNAL(type: InternalType, value: any): InternalVal {
+  return new Internal(value.type, value) as InternalVal;
 }
 MK_INTERNAL.BREAK = null as BreakVal;
 MK_INTERNAL.CONTINUE = null as ContinueVal;
@@ -136,7 +147,7 @@ export interface ObjectPropVal extends InternalVal {
 }
 
 export function MK_PROPERTY(value: string): ObjectPropVal {
-  return MK_INTERNAL({ type: 'property', value }) as ObjectPropVal;
+  return MK_INTERNAL('property', value) as ObjectPropVal;
 }
 
 export interface ReturnVal extends InternalVal {
@@ -145,7 +156,7 @@ export interface ReturnVal extends InternalVal {
 }
 
 export function MK_RETURN(value: RuntimeVal): ReturnVal {
-  return MK_INTERNAL({ type: 'return', value }) as ReturnVal;
+  return MK_INTERNAL('return', value) as ReturnVal;
 }
 
 export interface BreakVal extends InternalVal {
@@ -155,7 +166,7 @@ export interface BreakVal extends InternalVal {
 export function MK_BREAK() {
   if(MK_INTERNAL.BREAK) return MK_INTERNAL.BREAK;
   else {
-    MK_INTERNAL.BREAK = MK_INTERNAL({ type: 'break' }) as BreakVal;
+    MK_INTERNAL.BREAK = MK_INTERNAL('break', undefined) as BreakVal;
     return MK_INTERNAL.BREAK;
   }
 }
@@ -167,7 +178,7 @@ export interface ContinueVal extends InternalVal {
 export function MK_CONTINUE() {
   if(MK_INTERNAL.CONTINUE) return MK_INTERNAL.CONTINUE;
   else {
-    MK_INTERNAL.CONTINUE = MK_INTERNAL({ type: 'continue' }) as ContinueVal;
+    MK_INTERNAL.CONTINUE = MK_INTERNAL('continue', undefined) as ContinueVal;
     return MK_INTERNAL.CONTINUE;
   }
 }
@@ -178,7 +189,7 @@ export interface IteratorVal extends InternalVal {
 }
 
 export function MK_ITERATOR(value:any): ReturnVal {
-  return MK_INTERNAL({ type: 'iterator', value }) as ReturnVal;
+  return MK_INTERNAL('iterator', value) as ReturnVal;
 }
 
 type MK_PARSE = ((value: string) => StringVal)| ((value: any) => RuntimeVal);
@@ -195,7 +206,7 @@ export function MK_PARSE(value:any=null, name?:any): AnyVal {
   if (typeof value == 'object') {
     if (value instanceof RuntimeClassVal) return value as AnyVal;
     if (Buffer.isBuffer(value)) return MK_BUFFER(value)
-    if ((value as RuntimeVal).__NATIVO__) return value;
+    if ((value as RuntimeVal).__native__) return value;
     if (value == null) return MK_NULL();
     if (Array.isArray(value)) return MK_ARRAY_NATIVE(...value.map(MK_PARSE));
     return MK_OBJECT_NATIVE(value);

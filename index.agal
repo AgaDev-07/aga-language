@@ -1,4 +1,13 @@
-def lista = [0, 1, 2]
-def obj = Funcion('x', 'pintar(x)')
+clase Persona{
+  constructor(nombre, edad){
+    este.nombre = nombre
+    este.edad = edad
+  }
+  __pintar__(){
+    retorna ("Nombre: " + este.nombre + ", edad: " + este.edad);
+  }
+}
 
-obj(Objeto(lista))
+def juan = Persona("Juan", 20)
+pintar(juan)
+pintar(global)

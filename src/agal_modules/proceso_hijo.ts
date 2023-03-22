@@ -19,7 +19,7 @@ export default (folder: string) => {
       return MK_STRING(cp.execSync(command.value).toString());
     }),
     aparecer: MK_FUNCTION_NATIVE((command: StringVal, args: ArrayVal<StringVal>) => {
-      const args_ = args.__NATIVO__() as string[];
+      const args_ = args.__native__() as string[];
       let cwd = cp.spawn(command.value, args_);
       let cmd = EventEmitter.execute() as ObjectVal;
 

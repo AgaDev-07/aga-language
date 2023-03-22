@@ -4,7 +4,6 @@ import Environment from '../environment.js';
 import { RuntimeVal } from '../values.js';
 import {
   ArrayVal,
-  MK_ARRAY,
   MK_ARRAY_NATIVE,
   MK_FUNCTION_NATIVE,
   MK_MODULE,
@@ -64,7 +63,7 @@ export default (env: Environment) => {
             );
           process.title = title.value;
         }),
-        moduloPrimncipal: modulo
+        moduloPrincipal: modulo
       }),
     ],
   ] as [string, RuntimeVal][];

@@ -294,7 +294,8 @@ export function eval_call_expr(node: CallExpr, env: Environment): RuntimeVal {
   if (callee.type == 'clase') {
     callee = callee.constructor;
     thisValue = (thisValue as ClassVal).instace();
-    thisValue ||= callee.execute.call(thisValue, ...args);
+    let constructorV = callee.execute.call(thisValue, ...args);
+    thisValue ||= constructorV
     return thisValue;
   }
 

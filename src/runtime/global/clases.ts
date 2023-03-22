@@ -20,7 +20,7 @@ export function getObjeto() {
     nombre: MK_STRING('Objeto'),
     claves: MK_FUNCTION_NATIVE(
       function (object: RuntimeVal) {
-        let obj = object.__NATIVO__();
+        let obj = object.__native__();
         return MK_ARRAY_NATIVE(...Object.keys(obj).map(MK_PARSE));
       },
       { nombre: MK_STRING('Objeto.claves') },
@@ -28,7 +28,7 @@ export function getObjeto() {
     ),
     valores: MK_FUNCTION_NATIVE(
       function (object: RuntimeVal) {
-        let obj = object.__NATIVO__();
+        let obj = object.__native__();
         return MK_ARRAY_NATIVE(...Object.values(obj).map(MK_PARSE));
       },
       { nombre: MK_STRING('Objeto.valores') },
@@ -36,7 +36,7 @@ export function getObjeto() {
     ),
     pares: MK_FUNCTION_NATIVE(
       function (object: RuntimeVal) {
-        let obj = object.__NATIVO__();
+        let obj = object.__native__();
         let entries = Object.entries(obj);
         return MK_PARSE(entries);
       },
@@ -45,7 +45,7 @@ export function getObjeto() {
     ),
     desdePares: MK_FUNCTION_NATIVE(
       function (pares: ArrayVal<AnyVal>) {
-        let entries = pares.__NATIVO__();
+        let entries = pares.__native__();
         let obj = Object.fromEntries(entries);
         return MK_PARSE(obj);
       },
@@ -55,7 +55,7 @@ export function getObjeto() {
   };
 
   getObjeto.value = MK_CLASS_NATIVE(function(obj:RuntimeVal){
-    return MK_OBJECT_NATIVE({...obj.__NATIVO__()})
+    return MK_OBJECT_NATIVE({...obj.__native__()})
   }, props);
   return getObjeto.value;
 }
@@ -105,7 +105,9 @@ export function getLista() {
 getLista.value = null;
 export function getBooleano(){
   if(getBooleano.value) return getBooleano.value;
-  let props = {};
+  let props = {
+    nombre: MK_STRING('Booleano'),
+  };
 
   getBooleano.value = MK_CLASS_NATIVE(MK_BOOLEAN_RUNTIME, props);
   return getBooleano.value;
@@ -114,6 +116,7 @@ getBooleano.value = null;
 export function getNumero(){
   if(getNumero.value) return getNumero.value;
   let props = {
+    nombre: MK_STRING('Numero'),
     esNeN: MK_FUNCTION_NATIVE(
       function (value: AnyVal) {
         if(value.type !== 'numero') return false;
