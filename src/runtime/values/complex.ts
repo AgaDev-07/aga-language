@@ -17,7 +17,6 @@ import {
   VarDeclaration,
 } from '../../frontend/ast';
 import Environment from '../environment';
-import { getObjeto } from '../global/clases';
 import { evaluate } from '../interpreter';
 import { AnyVal, RuntimeClassVal, RuntimeVal } from '../values';
 import { Colors, MK_PARSE, Properties } from './internal';
@@ -31,8 +30,8 @@ const CLASS_INSTANCE_PROPS: Record<string, RuntimeVal> = {};
 
 export class Complex extends RuntimeClassVal implements RuntimeVal {
   family: 'complex' = 'complex';
-  properties = new Properties();
-  static props = {};
+  static props = {} as Record<symbol|string, FunctionVal>
+  properties: Properties<AnyVal>;
   constructor(
     public type: ComplexType,
     properties: { [key: string]: RuntimeVal } = {},
@@ -40,6 +39,7 @@ export class Complex extends RuntimeClassVal implements RuntimeVal {
     values?: any
   ) {
     super();
+    this.properties = new Properties(this as AnyVal);
     let props = Object.entries<RuntimeVal>({ ...Complex.props, ...properties });
 
     props.forEach(([key, value]) => {
@@ -52,7 +52,13 @@ export class Complex extends RuntimeClassVal implements RuntimeVal {
   }
   __pintar__(n = 0) {
     let pintar = this.properties.get('__pintar__') as FunctionVal;
+    if (!pintar) return Colors.magenta(this.aCadena());
     return pintar.execute.call(this, n);
+  }
+  aCadena() {
+    let aCadena = this.properties.get('aCadena') as FunctionVal;
+    if (!aCadena) return `[complejo ${this.type}]`;
+    return aCadena.execute.call(this);
   }
   __native__() {
     let nativo = this.properties[Symbol.toPrimitive] as FunctionVal;
@@ -69,7 +75,8 @@ Complex.props = {
     for (let [key, value] of this.properties) {
       if (this == value) {
         props.push(`${key}: ${Colors.cyan(`[circular *${n + 1}]`)}`);
-        str = Colors.cyan(`[circular *${n + 1}]`) + ' ' + str;
+        if (!str.startsWith( Colors.cyan(`[circular *${n + 1}]`)))
+          str = Colors.cyan(`[circular *${n + 1}]`) + ' ' + str;
         continue;
       }
 
@@ -95,6 +102,9 @@ Complex.props = {
       }
     }
     return obj;
+  }),
+  aCadena: MK_FUNCTION_NATIVE(function (this: ComplexVal) {
+    return `[${this.type}]`;
   }),
 };
 
@@ -347,7 +357,6 @@ function MK_OBJECT_PROPS() {
     { name: MK_STRING('aCadena') }
   );
   OBJECT_PROPS.__tipode__ ||= MK_FUNCTION_NATIVE(() => MK_STRING('objeto'));
-  OBJECT_PROPS.constructor ||= getObjeto();
   return OBJECT_PROPS;
 }
 
@@ -392,7 +401,7 @@ export function MK_OBJECT(
   );
   return obj as ObjectVal;
 }
-MK_OBJECT.fromProperties = function (prop: Properties<'objeto', AnyVal>) {
+MK_OBJECT.fromProperties = function (prop: Properties<AnyVal>) {
   let obj = MK_COMPLEX('objeto');
   obj.properties = prop.copy();
   return obj as ObjectVal;
@@ -408,23 +417,14 @@ export interface ModuleVal extends ExtendsObjectVal {
   parent: Function;
 }
 
-export function MK_MODULE(): ModuleVal {
+export function MK_MODULE(props:Record<string, AnyVal> = {}, native = false): ModuleVal {
   let obj = MK_COMPLEX(
     'modulo',
     {
       __pintar__: MK_FUNCTION_NATIVE(function (this: ModuleVal, n: number) {
-        let nombre = 'Modulo'
-        let props = [];
-        for (let [key, value] of this.properties) {
-          props.push(`${key}: ${value.__pintar__(n + 1)}`);
-        }
-        let str =
-          props.length > 0
-            ? ` {\n${'  '.repeat(n + 1)}${
-                props.join(',\n' + '  '.repeat(n + 1)) + '\n' + '  '.repeat(n)
-              }}`
-            : '';
-        return nombre + str;
+        let type = native ? 'Modulo nativo' : 'Modulo';
+        let obj = Complex.props.__pintar__.execute.call(this, n);
+        return `${type} ${obj}`;
       }),
     },
     MK_MODULE
@@ -433,6 +433,7 @@ export function MK_MODULE(): ModuleVal {
     Object.entries({
       exporta: MK_OBJECT(),
       hijos: MK_ARRAY(),
+      ...props,
     })
   );
   return obj as ModuleVal;
@@ -441,7 +442,7 @@ export function MK_MODULE(): ModuleVal {
 export interface ArrayVal<T extends AnyVal> extends ExtendsObjectVal {
   type: 'lista';
   parent: Function;
-  properties: Properties<'lista', T>;
+  properties: Properties<ArrayVal<T>>;
 }
 
 export function MK_ARRAY_NATIVE<T extends AnyVal>(...args: T[]): ArrayVal<T> {
@@ -466,7 +467,7 @@ export interface FunctionVal extends ExtendsObjectVal {
   native?: Function;
   nombre?: string;
   execute: (...args: RuntimeVal[]) => RuntimeVal;
-  properties: Properties<'funcion'>;
+  properties: Properties<FunctionVal>;
 }
 
 export function MK_FUNCTION_NATIVE(

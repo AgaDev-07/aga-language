@@ -161,6 +161,26 @@ export function getNumero(){
   return getNumero.value;
 }
 getNumero.value = null;
+export function getCadena(){
+  if(getCadena.value) return getCadena.value;
+  let props = {
+    nombre: MK_STRING('Cadena'),
+  };
+
+  getCadena.value = MK_CLASS_NATIVE((v:AnyVal)=>MK_PARSE_TYPE(v, 'cadena'), props);
+  return getCadena.value;
+}
+getCadena.value = null;
+export function getBuffer(){
+  if(getBuffer.value) return getBuffer.value;
+  let props = {
+    nombre: MK_STRING('Buffer'),
+  };
+
+  getBuffer.value = MK_CLASS_NATIVE((v:AnyVal)=>MK_PARSE_TYPE(v, 'buffer'), props);
+  return getBuffer.value;
+}
+getBuffer.value = null;
 
 export default (env: Environment) => [
   ['Objeto', getObjeto()],

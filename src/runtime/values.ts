@@ -14,7 +14,7 @@ export type AnyVal = FunctionVal | ObjectVal | ArrayVal<AnyVal> | StringVal | Bo
 export interface RuntimeVal{
   family: keyof ValueFamily;
   type: ValueFamily[this['family']];
-  properties: Properties<this['type']>;
+  properties: Properties<AnyVal>;
   value?: any;
   __pintar__: (n?:number) => string;
   __native__: () => any;

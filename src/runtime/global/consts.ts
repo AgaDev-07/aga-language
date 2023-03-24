@@ -4,12 +4,14 @@ import Environment from '../environment.js';
 import { RuntimeVal } from '../values.js';
 import {
   ArrayVal,
+  Complex,
   MK_ARRAY_NATIVE,
   MK_FUNCTION_NATIVE,
   MK_MODULE,
   MK_OBJECT,
   MK_OBJECT_NATIVE,
   ModuleVal,
+  ObjectVal,
 } from '../values/complex.js';
 import { MK_STRING, StringVal } from '../values/primitive.js';
 
@@ -42,12 +44,12 @@ export default (env: Environment) => {
   const modulo = MK_MODULE();
   return [
     ['modulo', modulo],
+    ['exporta', modulo.properties.get('exporta')],
     ['requiere', MK_FUNCTION_NATIVE(requiere(env))],
     [
       'proceso',
       MK_OBJECT({
         argv: MK_ARRAY_NATIVE(...process.argv.slice(1).map(MK_STRING)),
-        modulo: modulo,
         env: MK_OBJECT_NATIVE(process.env as any),
         salir: MK_FUNCTION_NATIVE((code: number) => process.exit(code)),
         plataforma: MK_STRING(process.platform),
@@ -63,7 +65,11 @@ export default (env: Environment) => {
             );
           process.title = title.value;
         }),
-        moduloPrincipal: modulo
+        moduloPrincipal: modulo,
+      }, {
+        __pintar__: MK_FUNCTION_NATIVE(function(this: ObjectVal, n?: number) {
+          return 'proceso '+Complex.props.__pintar__.execute.call(this, n);
+        })
       }),
     ],
   ] as [string, RuntimeVal][];

@@ -21,7 +21,8 @@ export default function definition(env: Environment){
   const GlobalThis = MK_PARSE(global) as ObjectVal;
   GlobalThis.properties.set('esteGlobal', GlobalThis);
   GlobalThis.properties.set('global', GlobalThis);
-  env.declareVar('este', GlobalThis, true, false);
 
+  env.declareVar('este', GlobalThis, true, false);
   env.declareVar('global', GlobalThis, true, false);
+  env.declareVar('esteGlobal', GlobalThis, true, false);
 }

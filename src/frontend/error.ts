@@ -1,6 +1,8 @@
 import colors from '../libs/colors.js';
 
 
+
+
 export const enum ErrorType {
   InvalidToken,
   InvalidSyntax,
@@ -14,7 +16,8 @@ export const enum ErrorType {
   RuntimeError,
   FileNotFound,
   InvalidArgument,
-  MathError
+  MathError,
+  PluginError
 }
 
 export interface Error {
@@ -77,6 +80,10 @@ export function error(
     case ErrorType.FileNotFound:
       typeError = 'ErrorArchivo';
       message ||= 'Archivo no encontrado';
+    case ErrorType.PluginError:
+      typeError = 'ErrorPlugin';
+      message ||= 'Error en un plugin';
+      break;
     default:
       message ||= '¿Error no definido?';
       break;

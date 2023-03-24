@@ -4,15 +4,19 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "plugins": "node plugins-active.js",
+    "start": "npm run build && npm run plugins"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/deasync": "^0.1.2",
     "@types/node": "^18.11.18"
   },
   "dependencies": {
-    "@agacraft/fs": "^1.0.1"
+    "@agacraft/fs": "^1.0.1",
+    "deasync": "^0.1.28"
   }
 }

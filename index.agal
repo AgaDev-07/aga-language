@@ -1,13 +1,1 @@
-clase Persona{
-  constructor(nombre, edad){
-    este.nombre = nombre
-    este.edad = edad
-  }
-  __pintar__(){
-    retorna ("Nombre: " + este.nombre + ", edad: " + este.edad);
-  }
-}
-
-def juan = Persona("Juan", 20)
-pintar(juan)
-pintar(global)
+const m = requiere('./test.pagal/a/')

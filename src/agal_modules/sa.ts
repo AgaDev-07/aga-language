@@ -1,7 +1,7 @@
 import fs from 'fs';
 import afs from '@agacraft/fs'
-import { MK_FUNCTION_NATIVE, MK_OBJECT } from '../runtime/values/complex';
-import { MK_PARSE } from '../runtime/values/internal';
+import { ClassVal, FunctionVal, MK_CLASS_NATIVE, MK_FUNCTION_NATIVE, MK_OBJECT } from '../runtime/values/complex';
+import { Colors, MK_PARSE } from '../runtime/values/internal';
 import { BufferVal, MK_BOOLEAN, MK_BUFFER, MK_STRING, StringVal } from '../runtime/values/primitive';
 import { error, ErrorType } from '../frontend/error';
 
@@ -40,9 +40,10 @@ export default (folder:string)=>{
     archivo: MK_FUNCTION_NATIVE(function (path: StringVal) {
       const { value } = path;
       if(afs.isDirectory(value)) error(ErrorType.FileNotFound, 0, 0, `La ruta "${value}" es una carpeta no un archivo`)
+      const PATH = calcPath(value, folder)
       return MK_OBJECT({
         tipo: archivo,
-        path: MK_STRING(calcPath(value, folder)),
+        path: MK_STRING(PATH),
         name: MK_STRING(calcPath(value.split('/').pop(), folder)),
         leer: MK_FUNCTION_NATIVE(function (tipo: FileReadType = defaultFileReadType) {
           const { value: valueType } = tipo;
@@ -62,14 +63,17 @@ export default (folder:string)=>{
         existe: MK_FUNCTION_NATIVE(function () {
           return afs.isFile(value) ? verdadero : falso
         }),
-      })
-    }),
+      }, { __pintar__: MK_FUNCTION_NATIVE(function () {
+        return Colors.blueBright(`Archivo: ${PATH}`)
+      }) })
+    }, {nombre: MK_STRING('sa.archivo')}),
     carpeta: MK_FUNCTION_NATIVE(function (path: StringVal) {
       const { value } = path;
-      if(afs.isFile(value)) error(ErrorType.FileNotFound, 0, 0, `La ruta "${value}" es un archivo no una carpetaw`)
+      if(afs.isFile(value)) error(ErrorType.FileNotFound, 0, 0, `La ruta "${value}" es un archivo no una carpeta`)
+      const PATH = calcPath(value, folder)
       return MK_OBJECT({
         tipo: carpeta,
-        path: MK_STRING(calcPath(value, folder)),
+        path: MK_STRING(PATH),
         name: MK_STRING(calcPath(value.split('/').pop(), folder)),
         leer: MK_FUNCTION_NATIVE(function () {
           if(!afs.isDirectory(value)) error(ErrorType.FileNotFound, 0, 0, `La carpeta "${value}" no existe`)
@@ -91,14 +95,16 @@ export default (folder:string)=>{
         existe: MK_FUNCTION_NATIVE(function () {
           return afs.isDirectory(value) ? verdadero : falso
         }),
-      })
-    }),
+      }, { __pintar__: MK_FUNCTION_NATIVE(function () {
+        return Colors.blueBright(`Carpeta: ${PATH}`)
+      })})
+    }, {nombre: MK_STRING('sa.carpeta')}),
     tipoDe: MK_FUNCTION_NATIVE(function (path: StringVal) {
       const { value } = path;
       if(afs.isDirectory(value)) return carpeta
       else if(afs.isFile(value)) return archivo
       else return ninguno
-    }),
+    }, {nombre: MK_STRING('sa.tipoDe')}),
   };
   return MK_OBJECT(sa)
 }

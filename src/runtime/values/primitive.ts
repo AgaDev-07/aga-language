@@ -5,31 +5,38 @@ import { Mate } from '../global/vars';
 
 export class Primitive extends RuntimeClassVal implements RuntimeVal {
   family: 'primitive' = 'primitive';
-  properties = new Properties([
-    [
-      '__pintar__',
-      MK_FUNCTION_NATIVE(function () {
-        return this.value;
-      }),
-    ],
-    [
-      'aCadena',
-      MK_FUNCTION_NATIVE(function () {
-        return MK_STRING(this.value);
-      }),
-    ],
-  ]);
+  properties: Properties<AnyVal>;
   constructor(
     public type: PrimitiveType,
     public value: any,
     props: [string, RuntimeVal][]
   ) {
     super();
+    this.properties = new Properties(this as AnyVal, [
+      [
+        '__pintar__',
+        MK_FUNCTION_NATIVE(function (this: Primitive, n: number = 0) {
+          return this.aCadena();
+        }),
+      ],
+      [
+        'aCadena',
+        MK_FUNCTION_NATIVE(function (this: Primitive) {
+          return this.value;
+        }),
+      ],
+    ]);
     this.properties.setAll(props);
   }
   __pintar__(n: number = 0) {
     let pintar = this.properties.get('__pintar__');
+    if (!pintar) return Colors.yellow(this.value);
     return pintar.execute.call(this, n);
+  }
+  aCadena() {
+    let aCadena = this.properties.get('aCadena');
+    if (!aCadena) return this.value;
+    return aCadena.execute.call(this);
   }
   __native__() {
     return this.value;
@@ -60,7 +67,7 @@ export class NumberRuntime extends Primitive implements NumberVal {
     this.imaginary = imaginary;
   }
   __runtime__() {
-    return this
+    return this;
   }
   _multiply(other: NumberRuntime): NumVal {
     if (this.value == null || other.value == null) return NumberRuntime.NaN;
@@ -75,16 +82,16 @@ export class NumberRuntime extends Primitive implements NumberVal {
       _multiply(other: NumberRuntime) {
         return self._multiply.call(num, other);
       },
-      __runtime__(){
+      __runtime__() {
         return new NumberRuntime(num.value, '', num.imaginary);
-      }
+      },
     };
     return num;
   }
-  abs(){
+  abs() {
     let x = this.value;
     let y = this.imaginary;
-    let z = x*x + y*y
+    let z = x * x + y * y;
     return Math.sqrt(z);
   }
   multiply(other: NumberRuntime) {
@@ -173,8 +180,8 @@ export interface NullVal extends PrimitiveVal {
 }
 
 export function MK_NULL(): NullVal {
-  if(MK_NULL.value) return MK_NULL.value;
-  MK_NULL.value =  MK_PRIMITIVE(null, 'nulo', [
+  if (MK_NULL.value) return MK_NULL.value;
+  MK_NULL.value = MK_PRIMITIVE(null, 'nulo', [
     ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.whiteBright('nulo'))],
   ]) as NullVal;
   return MK_NULL.value;
@@ -200,7 +207,10 @@ export function getNumberString(value: number, imaginary: number) {
   return value.toString() + imaginary.toString() + 'i';
 }
 
-export function MK_NUMBER(value: number | null = 0, imaginary = 0): NumberRuntime {
+export function MK_NUMBER(
+  value: number | null = 0,
+  imaginary = 0
+): NumberRuntime {
   NumberRuntime.NaN ||= new NumberRuntime(null, 'NeN');
   NumberRuntime.Infinity ||= new NumberRuntime(Infinity, 'Infinito');
   NumberRuntime.NegativeInfinity ||= new NumberRuntime(-Infinity, '-Infinito');
