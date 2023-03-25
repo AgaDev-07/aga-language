@@ -1,6 +1,15 @@
 # Agal
 ### Hoy venimos presentando **Agal** un lenguaje de programacion en español basado en matematicas
 
+##Para iniciar
+```sh
+ npm start
+```
+##Ejecutar con
+```sh
+  agal {archivo}
+```
+
 #### Ejemplo
 ```js
 // En JavaScript
