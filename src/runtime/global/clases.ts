@@ -2,17 +2,19 @@ import Parser from '../../frontend/parser.js';
 import Environment from '../environment.js';
 import { AnyVal, RuntimeVal } from '../values.js';
 import {
-  MK_OBJECT,
   MK_FUNCTION_NATIVE,
   MK_ARRAY_NATIVE,
   ArrayVal,
-  MK_CLASS,
   MK_FUNCTION,
   MK_CLASS_NATIVE,
   MK_OBJECT_NATIVE,
+  MK_OBJECT,
+  MK_OBJECT_PROPS,
+  MK_FUNCTION_PROPS,
+  MK_ARRAY_PROPS,
 } from '../values/complex.js';
 import { MK_PARSE, MK_PARSE_TYPE } from '../values/internal.js';
-import { MK_BOOLEAN, MK_BOOLEAN_RUNTIME, MK_NUMBER, MK_STRING, StringVal } from '../values/primitive.js';
+import { MK_BOOLEAN_PROPS, MK_BOOLEAN_RUNTIME, MK_BUFFER_PROPS, MK_NUMBER_PROPS, MK_STRING, MK_STRING_PROPS, StringVal } from '../values/primitive.js';
 
 export function getObjeto() {
   if(getObjeto.value) return getObjeto.value;
@@ -60,6 +62,12 @@ export function getObjeto() {
   return getObjeto.value;
 }
 getObjeto.value = null;
+getObjeto.proto = null
+getObjeto.getProto = function(){
+  if(getObjeto.proto) return getObjeto.proto;
+  getObjeto.proto = MK_OBJECT(undefined, MK_OBJECT_PROPS())
+  return getObjeto.proto
+}
 export function getFuncion() {
   if(getFuncion.value) return getFuncion.value;
   let props = {
@@ -79,6 +87,13 @@ export function getFuncion() {
   return getFuncion.value;
 }
 getFuncion.value = null;
+getFuncion.proto = null;
+getFuncion.getProto = function(){
+  if(getFuncion.proto) return getFuncion.proto
+  getFuncion.proto = MK_OBJECT(undefined, MK_FUNCTION_PROPS(true))
+  return getFuncion.proto
+}
+
 export function getLista() {
   if(getLista.value) return getLista.value;
   let props = {
@@ -103,6 +118,12 @@ export function getLista() {
   return getLista.value;
 }
 getLista.value = null;
+getLista.proto = null
+getLista.getProto = function(){
+  if(getLista.proto) return getLista.proto;
+  getLista.proto = MK_OBJECT(undefined, MK_ARRAY_PROPS())
+  return getLista.proto
+}
 export function getBooleano(){
   if(getBooleano.value) return getBooleano.value;
   let props = {
@@ -113,6 +134,12 @@ export function getBooleano(){
   return getBooleano.value;
 }
 getBooleano.value = null;
+getBooleano.proto = null
+getBooleano.getProto = function(){
+  if(getBooleano.proto) return getBooleano.proto;
+  getBooleano.proto = MK_OBJECT(undefined, MK_BOOLEAN_PROPS())
+  return getBooleano.proto
+}
 export function getNumero(){
   if(getNumero.value) return getNumero.value;
   let props = {
@@ -161,6 +188,12 @@ export function getNumero(){
   return getNumero.value;
 }
 getNumero.value = null;
+getNumero.proto = null
+getNumero.getProto = function(){
+  if(getNumero.proto) return getNumero.proto;
+  getNumero.proto = MK_OBJECT(undefined, MK_NUMBER_PROPS())
+  return getNumero.proto
+}
 export function getCadena(){
   if(getCadena.value) return getCadena.value;
   let props = {
@@ -171,6 +204,12 @@ export function getCadena(){
   return getCadena.value;
 }
 getCadena.value = null;
+getCadena.proto = null
+getCadena.getProto = function(){
+  if(getCadena.proto) return getCadena.proto;
+  getCadena.proto = MK_OBJECT(undefined, MK_STRING_PROPS())
+  return getCadena.proto
+}
 export function getBuffer(){
   if(getBuffer.value) return getBuffer.value;
   let props = {
@@ -181,6 +220,12 @@ export function getBuffer(){
   return getBuffer.value;
 }
 getBuffer.value = null;
+getBuffer.proto = null
+getBuffer.getProto = function(){
+  if(getBuffer.proto) return getBuffer.proto;
+  getBuffer.proto = MK_OBJECT(undefined, MK_BUFFER_PROPS())
+  return getBuffer.proto
+}
 
 export default (env: Environment) => [
   ['Objeto', getObjeto()],

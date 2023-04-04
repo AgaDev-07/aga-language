@@ -3,11 +3,16 @@ import { AnyVal, RuntimeClassVal, RuntimeVal } from '../values';
 import { Colors, Properties } from './internal';
 import { Mate } from '../global/vars';
 
-function getPrimitiveProps(){
-  getPrimitiveProps.value.__pintar__ ||= MK_FUNCTION_NATIVE(function (this: Primitive, n: number = 0) {
+function getPrimitiveProps() {
+  getPrimitiveProps.value.__pintar__ ||= MK_FUNCTION_NATIVE(function (
+    this: Primitive,
+    n: number = 0
+  ) {
     return Colors.magenta(this.value);
   });
-  getPrimitiveProps.value.aCadena ||= MK_FUNCTION_NATIVE(function (this: Primitive) {
+  getPrimitiveProps.value.aCadena ||= MK_FUNCTION_NATIVE(function (
+    this: Primitive
+  ) {
     return this.value;
   });
   return getPrimitiveProps.value;
@@ -20,15 +25,14 @@ export class Primitive extends RuntimeClassVal implements RuntimeVal {
   constructor(
     public type: PrimitiveType,
     public value: any,
-    props: [string, RuntimeVal][]
+    props: Record<string, RuntimeVal> = getPrimitiveProps()
   ) {
     super();
-    this.properties = new Properties(this as AnyVal, undefined, getPrimitiveProps());
-    this.properties.setAll(props);
+    this.properties = new Properties(this as AnyVal, undefined, props);
   }
   __pintar__(n: number = 0) {
     let pintar = this.properties.get('__pintar__');
-    if (!pintar) return Colors.yellow(this.value);
+    if (!pintar) return Colors.yellow(this.aCadena());
     return pintar.execute.call(this, n);
   }
   aCadena() {
@@ -47,20 +51,28 @@ interface NumVal {
   _multiply(other: NumberRuntime): NumVal;
   __runtime__(): NumberRuntime;
 }
+export function MK_NUMBER_PROPS() {
+  MK_NUMBER_PROPS.value.__pintar__ ||= MK_FUNCTION_NATIVE(function (
+    this: NumberRuntime
+  ) {
+    return Colors.yellow(this.aCadena());
+  });
+  MK_NUMBER_PROPS.value.aCadena ||= MK_FUNCTION_NATIVE(function(this:NumberRuntime){
+    return this.console || getNumberString(this.value, this.imaginary)
+  })
+  return MK_NUMBER_PROPS.value
+}
+MK_NUMBER_PROPS.value = {} as Record<string, RuntimeVal>;
 export class NumberRuntime extends Primitive implements NumberVal {
   type: 'numero' = 'numero';
   declare value: number;
   declare imaginary: number;
   constructor(
     value: number | null,
-    _console: string = '',
+    public console: string = '',
     imaginary: number = 0
   ) {
-    const number = _console || getNumberString(value as number, imaginary);
-    super('numero', value, [
-      ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.yellow(number))],
-      ['aCadena', MK_FUNCTION_NATIVE(() => MK_STRING(number))],
-    ]);
+    super('numero', value, MK_NUMBER_PROPS());
     this.value = value as number;
     this.imaginary = imaginary;
   }
@@ -164,12 +176,9 @@ export type PrimitiveVal = Primitive;
 function MK_PRIMITIVE(
   value: any,
   type: PrimitiveType,
-  props: [string, AnyVal][] = []
+  props: Record<string, RuntimeVal> = getPrimitiveProps()
 ): PrimitiveVal {
-  return new Primitive(type, value, [
-    ['aCadena', MK_FUNCTION_NATIVE(() => MK_STRING(value))],
-    ...props,
-  ]) as PrimitiveVal;
+  return new Primitive(type, value, props) as PrimitiveVal;
 }
 
 export interface NullVal extends PrimitiveVal {
@@ -177,11 +186,16 @@ export interface NullVal extends PrimitiveVal {
   value: null;
 }
 
+export function MK_NULL_PROPS(){
+  MK_NULL_PROPS.value.__pintar__ ||= MK_FUNCTION_NATIVE(()=>Colors.whiteBright('nulo'))
+  MK_NULL_PROPS.value.aCadena ||= MK_FUNCTION_NATIVE(()=>'nulo')
+  return MK_NULL_PROPS.value
+}
+MK_NULL_PROPS.value = {} as Record<string, RuntimeVal>
+
 export function MK_NULL(): NullVal {
   if (MK_NULL.value) return MK_NULL.value;
-  MK_NULL.value = MK_PRIMITIVE(null, 'nulo', [
-    ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.whiteBright('nulo'))],
-  ]) as NullVal;
+  MK_NULL.value = MK_PRIMITIVE(null, 'nulo', MK_NULL_PROPS()) as NullVal;
   return MK_NULL.value;
 }
 MK_NULL.value = null;
@@ -232,15 +246,25 @@ export interface BooleanVal extends PrimitiveVal {
   value: boolean;
 }
 
+export function MK_BOOLEAN_PROPS(): Record<string, RuntimeVal> {
+  MK_BOOLEAN_PROPS.value.__pintar__ ||= MK_FUNCTION_NATIVE(function (
+    this: BooleanVal
+  ) {
+    return Colors.yellow(this.aCadena());
+  });
+  MK_BOOLEAN_PROPS.value.aCadena ||= MK_FUNCTION_NATIVE(function (
+    this: BooleanVal
+  ){
+    return this.value ? 'verdadero' : 'falso'
+  })
+  return MK_BOOLEAN_PROPS.value;
+}
+MK_BOOLEAN_PROPS.value = {} as Record<string, RuntimeVal>;
+
 export function MK_BOOLEAN(value = false): BooleanVal {
   let bool = value ? 'TRUE' : 'FALSE';
   if (!MK_BOOLEAN.bool[bool])
-    MK_BOOLEAN.bool[bool] = MK_PRIMITIVE(value, 'booleano', [
-      [
-        '__pintar__',
-        MK_FUNCTION_NATIVE(() => Colors.yellow(value ? 'verdadero' : 'falso')),
-      ],
-    ]) as BooleanVal;
+    MK_BOOLEAN.bool[bool] = MK_PRIMITIVE(value, 'booleano', MK_BOOLEAN_PROPS()) as BooleanVal;
   return MK_BOOLEAN.bool[bool];
 }
 
@@ -258,19 +282,21 @@ export interface StringVal extends PrimitiveVal {
   value: string;
 }
 
+export function MK_STRING_PROPS(){
+  MK_STRING_PROPS.value.__pintar__ ||= MK_FUNCTION_NATIVE(function (this: StringVal, n: number) {
+    if (!n) return this.value;
+    let quote = this.value.includes("'") ? '"' : "'";
+    return Colors.green(
+      quote + this.value.replace(quote, `\\${quote}`) + quote
+    );
+  })
+  MK_STRING_PROPS.value.aCadena ||= MK_FUNCTION_NATIVE(function(this:StringVal){return this})
+  return MK_STRING_PROPS.value
+}
+MK_STRING_PROPS.value = {} as Record<string, RuntimeVal>
+
 export function MK_STRING(value = ''): StringVal {
-  return MK_PRIMITIVE(value + '', 'cadena', [
-    [
-      '__pintar__',
-      MK_FUNCTION_NATIVE(function (this: StringVal, n: number) {
-        if (!n) return this.value;
-        let quote = this.value.includes("'") ? '"' : "'";
-        return Colors.green(
-          quote + this.value.replace(quote, `\\${quote}`) + quote
-        );
-      }),
-    ],
-  ]) as StringVal;
+  return MK_PRIMITIVE(value + '', 'cadena', MK_STRING_PROPS()) as StringVal;
 }
 
 export interface BufferVal extends PrimitiveVal {
@@ -278,10 +304,15 @@ export interface BufferVal extends PrimitiveVal {
   value: Buffer;
 }
 
+export function MK_BUFFER_PROPS(){
+  MK_BUFFER_PROPS.value.__pintar__ ||= MK_FUNCTION_NATIVE(() => Colors.yellow('buffer'))
+  MK_VOID_PROPS.value.aCadena ||= MK_FUNCTION_NATIVE(function(this:BufferVal){return this.__native__()+''})
+  return MK_BUFFER_PROPS.value
+}
+MK_BUFFER_PROPS.value = {} as Record<string, RuntimeVal>
+
 export function MK_BUFFER(value = Buffer.alloc(0)): BufferVal {
-  return MK_PRIMITIVE(value, 'buffer', [
-    ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.yellow('buffer'))],
-  ]) as BufferVal;
+  return MK_PRIMITIVE(value, 'buffer', MK_BUFFER_PROPS()) as BufferVal;
 }
 
 export interface VoidVal extends PrimitiveVal {
@@ -289,10 +320,15 @@ export interface VoidVal extends PrimitiveVal {
   value: null;
 }
 
+export function MK_VOID_PROPS(){
+  MK_VOID_PROPS.value.__pintar__ ||= MK_FUNCTION_NATIVE(() => Colors.gray('vacio'))
+  MK_VOID_PROPS.value.aCadena ||= MK_FUNCTION_NATIVE(()=>'void')
+  return MK_VOID_PROPS.value
+}
+MK_VOID_PROPS.value = {} as Record<string, RuntimeVal>
+
 export function MK_VOID(): VoidVal {
-  return MK_PRIMITIVE(null, 'vacio', [
-    ['__pintar__', MK_FUNCTION_NATIVE(() => Colors.gray('vacio'))],
-  ]) as VoidVal;
+  return MK_PRIMITIVE(null, 'vacio', MK_VOID_PROPS()) as VoidVal;
 }
 
 //#endregion

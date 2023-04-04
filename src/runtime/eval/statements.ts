@@ -11,7 +11,6 @@ import Environment from '../environment.js';
 import { evaluate } from '../interpreter.js';
 import { RuntimeVal } from '../values.js';
 import { FunctionVal, MK_CLASS, MK_FUNCTION } from '../values/complex.js';
-import { MK_RETURN } from '../values/internal.js';
 import {
   MK_NULL,
   BooleanVal,
@@ -123,5 +122,5 @@ export function eval_return_statement(
   env: Environment
 ): RuntimeVal {
   const value = statement.value ? evaluate(statement.value, env) : MK_VOID();
-  return MK_RETURN(value);
+  return (value);
 }

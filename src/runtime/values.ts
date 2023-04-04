@@ -1,4 +1,4 @@
-import { ArrayVal, ComplexType, FunctionVal, ModuleVal, ObjectVal } from "./values/complex.js";
+import { ArrayVal, ClassVal, ComplexType, FunctionVal, ModuleVal, ObjectVal } from "./values/complex.js";
 import { InternalType, InternalVal, IteratorVal, Properties } from "./values/internal.js";
 import { BooleanVal, BufferVal, NullVal, NumberVal, PrimitiveType, StringVal, VoidVal } from "./values/primitive.js";
 
@@ -9,7 +9,7 @@ export interface ValueFamily {
 }
 
 export type ValueType = PrimitiveType | ComplexType | InternalType;
-export type AnyVal = FunctionVal | ObjectVal | ArrayVal<AnyVal> | StringVal | BooleanVal | NullVal | VoidVal | ModuleVal | NumberVal | BufferVal;
+export type AnyVal = FunctionVal | ObjectVal | ArrayVal<AnyVal> | ClassVal | StringVal | BooleanVal | NullVal | VoidVal | ModuleVal | NumberVal | BufferVal;
 
 export interface RuntimeVal{
   family: keyof ValueFamily;

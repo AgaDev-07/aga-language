@@ -1,4 +1,9 @@
-const sa = requiere('sa')
-const zip = requiere('zip')
+Lista.__prototipo__.primero = funcion primero(){
+  retorna este[0];
+}
 
-pintar(modulo)
+const lista = []
+lista.primero = Lista.__prototipo__.primero
+
+pintar(Lista.__prototipo__)
+pintar(lista)

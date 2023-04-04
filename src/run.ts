@@ -132,8 +132,8 @@ export default function run(
   modulo.properties.setAll(values);
 
   const folder = modulo.properties.get('folder');
-
   env.declareVar('__folder', folder);
+
   const archivo = modulo.properties.get('archivo');
   env.declareVar('__archivo', archivo);
 

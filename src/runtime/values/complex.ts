@@ -30,7 +30,7 @@ const CLASS_INSTANCE_PROPS: Record<string, RuntimeVal> = {};
 
 export class Complex extends RuntimeClassVal implements RuntimeVal {
   family: 'complex' = 'complex';
-  static props = {} as Record<symbol|string, FunctionVal>
+  static props = {} as Record<symbol | string, FunctionVal>;
   properties: Properties<AnyVal>;
   constructor(
     public type: ComplexType,
@@ -74,10 +74,10 @@ Complex.props = {
     let str = '{';
     let props = [];
     for (let [key, value] of this.properties) {
-      if(!/^([a-zA-Z0-9$_]*)$/.test(key))key = MK_STRING(key).__pintar__(1);
+      if (!/^([a-zA-Z0-9$_]*)$/.test(key)) key = MK_STRING(key).__pintar__(1);
       if (this == value) {
         props.push(`${key}: ${Colors.cyan(`[circular *${n + 1}]`)}`);
-        if (!str.startsWith( Colors.cyan(`[circular *${n + 1}]`)))
+        if (!str.startsWith(Colors.cyan(`[circular *${n + 1}]`)))
           str = Colors.cyan(`[circular *${n + 1}]`) + ' ' + str;
         continue;
       }
@@ -178,7 +178,7 @@ function unParse(stmt: Stmt): string {
   }
 }
 
-function MK_FUNCTION_PROPS(useProps: boolean) {
+export function MK_FUNCTION_PROPS(useProps: boolean) {
   if (!useProps) return FUNCTION_PROPS;
   FUNCTION_PROPS.__pintar__ ||= MK_FUNCTION_NATIVE(function (
     this: FunctionVal,
@@ -187,6 +187,9 @@ function MK_FUNCTION_PROPS(useProps: boolean) {
     let fn = Colors.cyan(
       `[Funcion: ${this.properties.get('nombre').value || '<anonima>'}]`
     );
+    if (this.type !== 'funcion') {
+      fn = '';
+    }
     let props = [];
     for (let [key, value] of this.properties) {
       if (key == 'nombre') continue;
@@ -198,7 +201,7 @@ function MK_FUNCTION_PROPS(useProps: boolean) {
             props.join(',\n' + '  '.repeat(n + 1)) + '\n' + '  '.repeat(n)
           }}`
         : '';
-    return fn + str;
+    return (fn + str) || '{}';
   });
   FUNCTION_PROPS.aCadena ||= MK_FUNCTION_NATIVE(
     function () {
@@ -216,11 +219,16 @@ function MK_FUNCTION_PROPS(useProps: boolean) {
   return FUNCTION_PROPS;
 }
 
-function MK_ARRAY_PROPS() {
+export function MK_ARRAY_PROPS() {
   ARRAY_PROPS.__pintar__ ||= MK_FUNCTION_NATIVE(function (
     this: ArrayVal<AnyVal>,
     n: number
   ) {
+    let extra = '';
+    if (this.type !== 'lista') {
+      let constructor = this.properties.get('constructor') as ClassVal;
+      extra += constructor.properties.get('nombre').value + ' ';
+    }
     let str = '[';
     let list = [];
     let props = [...this.properties.entries()].sort((a, b) => {
@@ -240,7 +248,7 @@ function MK_ARRAY_PROPS() {
       str += '\n' + '  '.repeat(n);
     }
     str += ']';
-    return str;
+    return extra + str;
   });
   ARRAY_PROPS.agregar ||= MK_FUNCTION_NATIVE(
     function (this: ArrayVal<AnyVal>, value: RuntimeVal) {
@@ -293,7 +301,7 @@ function MK_ARRAY_PROPS() {
   return ARRAY_PROPS;
 }
 
-function MK_CLASS_PROPS() {
+export function MK_CLASS_PROPS() {
   CLASS_PROPS.__pintar__ ||= MK_FUNCTION_NATIVE(function (
     this: ClassVal,
     n = 0
@@ -321,7 +329,7 @@ function MK_CLASS_PROPS() {
   CLASS_PROPS.aCadena ||= MK_FUNCTION_NATIVE(
     function (this: ClassVal) {
       let name = (this.properties.get('nombre') as StringVal).value;
-      return (`[Clase ${name}]`);
+      return `[Clase ${name}]`;
     },
     { name: MK_STRING('aCadena') }
   );
@@ -349,15 +357,15 @@ MK_CLASS_PROPS.INSTANCE = function () {
   return CLASS_INSTANCE_PROPS;
 };
 
-function MK_OBJECT_PROPS() {
+export function MK_OBJECT_PROPS() {
   OBJECT_PROPS.__pintar__ ||= Complex.props.__pintar__;
   OBJECT_PROPS.aCadena ||= MK_FUNCTION_NATIVE(
     function (this: ObjectVal) {
-      let clase = this.properties.get('constructor') as FunctionVal;
+      let clase = this.properties.get('constructor');
       let nombre = (clase.properties.get('nombre') as StringVal).value;
       return `[Objeto ${nombre}]`;
     },
-    { name: MK_STRING('aCadena') }
+    { nombre: MK_STRING('aCadena') }
   );
   OBJECT_PROPS.__tipode__ ||= MK_FUNCTION_NATIVE(() => MK_STRING('objeto'));
   return OBJECT_PROPS;
@@ -377,13 +385,14 @@ export function MK_COMPLEX(
   ofType?: Record<string, RuntimeVal>,
   properties: entries = {},
   parent?: Function,
-  values?: any,
+  values?: any
 ): ComplexVal {
   return new Complex(type, properties, parent, values, ofType) as ComplexVal;
 }
 
 export interface ObjectVal extends ComplexVal {
   type: 'objeto';
+  properties: Properties<ObjectVal>;
 }
 
 export function MK_OBJECT_NATIVE(object: Object): ObjectVal {
@@ -400,9 +409,7 @@ export function MK_OBJECT(
 ): ObjectVal {
   let obj = MK_COMPLEX('objeto', MK_OBJECT_PROPS());
   obj.properties.setAll(Object.entries(prop));
-  obj.properties.setAllDefault(
-    Object.entries(privateProps)
-  );
+  obj.properties.setObjDefault(privateProps);
   return obj as ObjectVal;
 }
 MK_OBJECT.fromProperties = function (prop: Properties<AnyVal>) {
@@ -419,9 +426,13 @@ export interface ExtendsObjectVal extends ComplexVal {
 export interface ModuleVal extends ExtendsObjectVal {
   type: 'modulo';
   parent: Function;
+  properties: Properties<ModuleVal>;
 }
 
-export function MK_MODULE(props:Record<string, AnyVal> = {}, native = false): ModuleVal {
+export function MK_MODULE(
+  props: Record<string, AnyVal> = {},
+  native = false
+): ModuleVal {
   let obj = MK_COMPLEX(
     'modulo',
     MK_OBJECT_PROPS(),
@@ -458,7 +469,12 @@ export function MK_ARRAY_NATIVE<T extends AnyVal>(...args: T[]): ArrayVal<T> {
 export function MK_ARRAY<T extends AnyVal>(
   prop: { [key: string]: T } = {}
 ): ArrayVal<T> {
-  let array = MK_COMPLEX('lista', MK_ARRAY_PROPS(), undefined, MK_ARRAY) as ArrayVal<T>;
+  let array = MK_COMPLEX(
+    'lista',
+    MK_ARRAY_PROPS(),
+    undefined,
+    MK_ARRAY
+  ) as ArrayVal<T>;
   array.properties.setAll(Object.entries(prop));
   return array;
 }
@@ -525,6 +541,7 @@ export function MK_FUNCTION(
 
 export interface ClassVal extends ExtendsObjectVal {
   __prototipo__: ObjectVal;
+  properties: Properties<ClassVal>;
   instace(): ObjectVal;
   type: 'clase';
   parent: Function;
@@ -536,20 +553,14 @@ export function MK_CLASS(
   statics: { [key: string]: RuntimeVal } = {},
   prop: { [key: string]: RuntimeVal } = {}
 ): ClassVal {
-  let fn = MK_COMPLEX(
-    'clase',
-    MK_CLASS_PROPS(),
-    { constructor },
-    MK_FUNCTION,
-    {
-      ...constructor.values,
-      constructor,
-      execute() {
-        if (!constructor) return;
-        constructor.execute.call(this, ...arguments);
-      },
-    }
-  ) as ClassVal;
+  let fn = MK_COMPLEX('clase', MK_CLASS_PROPS(), { constructor }, MK_FUNCTION, {
+    ...constructor.values,
+    constructor,
+    execute() {
+      if (!constructor) return;
+      constructor.execute.call(this, ...arguments);
+    },
+  }) as ClassVal;
   fn.__prototipo__ = statics.__prototipo__ = MK_OBJECT(undefined, {
     ...MK_CLASS_PROPS.INSTANCE(),
     ...prop,
@@ -567,20 +578,14 @@ export function MK_CLASS_NATIVE(
   statics: Record<string, RuntimeVal> = {}
 ): ClassVal {
   let constructor = MK_FUNCTION_NATIVE(native);
-  let fn = MK_COMPLEX(
-    'clase',
-    MK_CLASS_PROPS(),
-    { constructor },
-    MK_FUNCTION,
-    {
-      ...constructor.values,
-      constructor,
-      execute() {
-        if (!constructor) return;
-        constructor.execute.call(this, ...arguments);
-      },
-    }
-  ) as ClassVal;
+  let fn = MK_COMPLEX('clase', MK_CLASS_PROPS(), { constructor }, MK_FUNCTION, {
+    ...constructor.values,
+    constructor,
+    execute() {
+      if (!constructor) return;
+      constructor.execute.call(this, ...arguments);
+    },
+  }) as ClassVal;
 
   fn.instace = function () {
     return null as any;

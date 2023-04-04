@@ -1,3 +1,4 @@
+import { ErrorType, error } from '../../frontend/error.js';
 import asyncToSync from '../../libs/asyncToSync.js';
 import colors from '../../libs/colors.js';
 import {
@@ -12,10 +13,10 @@ import {
 import { AnyVal, RuntimeClassVal, RuntimeVal, ValueType } from '../values.js';
 import {
   ArrayVal,
+  ClassVal,
   FunctionVal,
   MK_ARRAY_NATIVE,
   MK_FUNCTION_NATIVE,
-  MK_OBJECT,
   MK_OBJECT_NATIVE,
   ModuleVal,
   ObjectVal,
@@ -27,7 +28,6 @@ import {
   MK_NULL,
   MK_NUMBER,
   MK_STRING,
-  NullVal,
   StringVal,
 } from './primitive.js';
 
@@ -49,7 +49,6 @@ const defaultProps: Record<string, RuntimeVal> = {};
 type propsDefault = {
   funcion: {
     nombre: StringVal;
-    constructor: FunctionVal;
   };
   modulo: {
     nombre: StringVal;
@@ -60,10 +59,19 @@ type propsDefault = {
   lista: {
     agregar: FunctionVal;
   };
+  clase: {
+    __prototipo__: ObjectVal;
+    constructor: FunctionVal;
+    nombre: StringVal
+  };
 } & {
   [key in ValueType]: {
     __pintar__: FunctionVal;
     aCadena: FunctionVal & { execute(): StringVal };
+  };
+} & {
+  [key in Exclude<ValueType, 'clase'>]: {
+    constructor: ClassVal;
   };
 } & {
   [key in ValueType]: {
@@ -72,17 +80,30 @@ type propsDefault = {
 };
 
 export class Properties<C extends AnyVal> extends Map<string, RuntimeVal> {
-  constructor(private val: C, entries?: [string, RuntimeVal][], ofType?: Record<string, RuntimeVal>) {
+  constructor(
+    private val: C,
+    entries?: [string, RuntimeVal][],
+    ofType?: Record<string, RuntimeVal>
+  ) {
     super(entries);
     this.ofType = ofType || {};
   }
   private default: { [key: string]: RuntimeVal } = {};
   private ofType: Record<string, RuntimeVal>;
+  getProto(k){
+    let Get = super.get(k);
+    let Default = this.default[k];
+    let OfType = this.ofType[k];
+    let DefaultProps = defaultProps[k]
+    if(Get instanceof RuntimeClassVal) return Get;
+    if(Default instanceof RuntimeClassVal) return Default;
+    if(OfType instanceof RuntimeClassVal) return OfType;
+    if(DefaultProps instanceof RuntimeClassVal) return DefaultProps
+  }
   get<T extends C['type'], K extends keyof propsDefault[T]>(
-    key: K
+    k: K
   ): propsDefault[T][K] {
-    const k = key as string;
-    let value: any = super.get(k) || this.default[k] || this.ofType[k] || defaultProps[k];
+    let value: any = this.getProto(k) as propsDefault[T][K];
     if (!value) {
       if (k === 'constructor') {
         if (this.val.type === 'funcion') value = getFuncion();
@@ -92,11 +113,33 @@ export class Properties<C extends AnyVal> extends Map<string, RuntimeVal> {
         else if (this.val.type === 'objeto') value = getObjeto();
         else if (this.val.type === 'cadena') value = getCadena();
         else if (this.val.type === 'buffer') value = getBuffer();
-      }
-      if (k === 'aCadena') {
-        value = function (this: C) {
-          return `${this}`;
-        };
+      } else if (k === 'aCadena') {
+        if (this.val.family === 'primitive')
+          value = function (this: C) {
+            return `${this.__native__()}`;
+          };
+        else
+          value = function (this: C) {
+            return `${this}`;
+          };
+      } else if (k === '__prototipo__') {
+        if (this.val === getFuncion()) value = getFuncion.getProto()
+        else if (this.val === getLista()) value = getLista.getProto()
+        else if (this.val === getObjeto()) value = getObjeto.getProto()
+        else if (this.val === getBooleano()) value = getBooleano.getProto()
+        else if (this.val === getBuffer()) value = getBuffer.getProto()
+        else if (this.val === getCadena()) value = getCadena.getProto()
+        else if (this.val === getNumero()) value = getNumero.getProto()
+
+        if (value) {
+          this.setDefault(k, value);
+        }
+      } else {
+        if (this.val.type !== 'clase') {
+          const clase = this.get('constructor') as unknown as ClassVal;
+          const proto = clase.properties.get('__prototipo__');
+          value = proto.properties.getProto(k)
+        }
       }
     }
 
@@ -108,6 +151,10 @@ export class Properties<C extends AnyVal> extends Map<string, RuntimeVal> {
   }
   setAllDefault(entries: [string, RuntimeVal][]) {
     entries.forEach(([key, value]) => this.setDefault(key, value));
+    return this;
+  }
+  setObjDefault(obj: Record<string, RuntimeVal>) {
+    this.default = obj;
     return this;
   }
   setAll(entries: [string, RuntimeVal][]) {
@@ -186,15 +233,6 @@ export function MK_PROPERTY(value: string): ObjectPropVal {
   return MK_INTERNAL('property', value) as ObjectPropVal;
 }
 
-export interface ReturnVal extends InternalVal {
-  type: 'return';
-  value: RuntimeVal;
-}
-
-export function MK_RETURN(value: RuntimeVal): ReturnVal {
-  return MK_INTERNAL('return', value) as ReturnVal;
-}
-
 export interface BreakVal extends InternalVal {
   type: 'break';
 }
@@ -224,8 +262,8 @@ export interface IteratorVal extends InternalVal {
   value: RuntimeVal;
 }
 
-export function MK_ITERATOR(value: any): ReturnVal {
-  return MK_INTERNAL('iterator', value) as ReturnVal;
+export function MK_ITERATOR(value: any): IteratorVal {
+  return MK_INTERNAL('iterator', value) as IteratorVal;
 }
 
 type MK_PARSE = ((value: string) => StringVal) | ((value: any) => RuntimeVal);
@@ -241,7 +279,11 @@ export function MK_PARSE(value: any = null, name?: any): AnyVal {
   }
   if (typeof value == 'object') {
     if (value == null) return MK_NULL();
-    if (value instanceof RuntimeClassVal || value.properties instanceof Properties) return value as AnyVal;
+    if (
+      value instanceof RuntimeClassVal ||
+      value.properties instanceof Properties
+    )
+      return value as AnyVal;
     if (value instanceof Promise) return MK_PARSE(asyncToSync(value));
     if (Buffer.isBuffer(value)) return MK_BUFFER(value);
     if ((value as RuntimeVal).__native__) return value;
@@ -253,6 +295,15 @@ export function MK_PARSE(value: any = null, name?: any): AnyVal {
 
 export function MK_PARSE_TYPE(value: AnyVal, type: AnyVal['type']) {
   if (value.type == type) return value;
+  if (value.type == 'clase')
+    return error(ErrorType.InvalidType, 0, 0, 'No se puede parsear una clase');
+  if (type == 'clase')
+    return error(
+      ErrorType.InvalidArgument,
+      0,
+      0,
+      `No se puede parsear un ${value.type} a una clase`
+    );
   if (type == 'cadena') return MK_STRING(value.aCadena().value);
   if (type == 'numero') return MK_NUMBER(value.aNumero().value);
   if (type == 'booleano') return MK_BOOLEAN_RUNTIME(value);

@@ -49,7 +49,8 @@ export default (env: Environment) => {
     [
       'proceso',
       MK_OBJECT({
-        argv: MK_ARRAY_NATIVE(...process.argv.slice(1).map(MK_STRING)),
+        argv: MK_ARRAY_NATIVE(...process.argv.slice(1).map(
+        MK_STRING)),
         env: MK_OBJECT_NATIVE(process.env as any),
         salir: MK_FUNCTION_NATIVE((code: number) => process.exit(code)),
         plataforma: MK_STRING(process.platform),

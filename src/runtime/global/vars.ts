@@ -4,7 +4,6 @@ import { AnyVal, RuntimeClassVal, RuntimeVal } from '../values.js';
 import {
   ArrayVal,
   FunctionVal,
-  MK_FUNCTION,
   MK_FUNCTION_NATIVE,
   MK_OBJECT,
   ObjectVal,

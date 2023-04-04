@@ -3,7 +3,7 @@ import getArgs from './libs/args';
 import run from './run';
 
 
-let file = getArgs().filter(Boolean).join(' ');
+let file = getArgs().filter(Boolean)[0];
 
 if(file === ''){
   error(ErrorType.FileNotFound, 0, 0)
