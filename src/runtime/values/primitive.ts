@@ -3,6 +3,17 @@ import { AnyVal, RuntimeClassVal, RuntimeVal } from '../values';
 import { Colors, Properties } from './internal';
 import { Mate } from '../global/vars';
 
+function getPrimitiveProps(){
+  getPrimitiveProps.value.__pintar__ ||= MK_FUNCTION_NATIVE(function (this: Primitive, n: number = 0) {
+    return Colors.magenta(this.value);
+  });
+  getPrimitiveProps.value.aCadena ||= MK_FUNCTION_NATIVE(function (this: Primitive) {
+    return this.value;
+  });
+  return getPrimitiveProps.value;
+}
+getPrimitiveProps.value = {} as Record<string, RuntimeVal>;
+
 export class Primitive extends RuntimeClassVal implements RuntimeVal {
   family: 'primitive' = 'primitive';
   properties: Properties<AnyVal>;
@@ -12,20 +23,7 @@ export class Primitive extends RuntimeClassVal implements RuntimeVal {
     props: [string, RuntimeVal][]
   ) {
     super();
-    this.properties = new Properties(this as AnyVal, [
-      [
-        '__pintar__',
-        MK_FUNCTION_NATIVE(function (this: Primitive, n: number = 0) {
-          return this.aCadena();
-        }),
-      ],
-      [
-        'aCadena',
-        MK_FUNCTION_NATIVE(function (this: Primitive) {
-          return this.value;
-        }),
-      ],
-    ]);
+    this.properties = new Properties(this as AnyVal, undefined, getPrimitiveProps());
     this.properties.setAll(props);
   }
   __pintar__(n: number = 0) {

@@ -13,13 +13,12 @@ import { error, ErrorType } from './frontend/error';
 
 import agal_modules from './agal_modules/index';
 import asyncToSync from './libs/asyncToSync';
-import fs_obj from './libs/fs-obj';
 
 const EXTENCION = 'agal';
 const INDEX = 'principal';
 const DIR_MODULES = `modulos_${EXTENCION}`;
 
-const plugins_modules: Record<string, AnyVal> = {};
+const plugins_modules: Record<string, ModuleVal> = {};
 
 type FileReader = (
   file: string,
@@ -40,10 +39,16 @@ const readSourceCode = (file: string) => {
 const pluginObj = {
   registerReaderFile: (callback: FileReader) => sourceCode.unshift(callback),
   registerModule(name: string, module: AnyVal) {
-    plugins_modules[name] = module;
+    plugins_modules[name] = MK_MODULE(
+      {
+        exporta: module,
+        nombre: MK_STRING(name),
+      },
+      true
+    );
   },
-  error(message: string, pluginName?: string) {
-    if (pluginName) message = `Plugin ${pluginName}:\n    ${message}`;
+  error(message: string, pluginName: string='') {
+    message = `Plugin ${pluginName}:\n    ${message}`;
     error(ErrorType.PluginError, 0, 0, message);
   },
 };
@@ -105,15 +110,15 @@ function betterPath(path: string): string {
       ) ||
       '';
 
-  let paths = path.split(/[\\\/]/);
-  paths.forEach((path, i) => {
-    if (path == '..') {
-      paths.splice(i - 1, 2);
-    }
-    if (path == '.') paths.splice(i, 1);
-  });
+  const paths = path.split(/[\\\/]/);
+  const newPaths: string[] = [];
 
-  return paths.join('/');
+  for (let i = 0; i < paths.length; i++) {
+    if(paths[i] == '..') newPaths.pop();
+    else if(paths[i] == '.'){}
+    else newPaths.push(paths[i]);
+  }
+  return newPaths.join('/');
 }
 
 export default function run(
@@ -154,15 +159,15 @@ run.file = function (original_path: string, folder: string = '') {
     return module as unknown as ModuleVal;
   }
   if (plugins_modules[original_path]) {
-    const module = plugins_modules[original_path];
+    const module = plugins_modules[original_path]
     return module as unknown as ModuleVal;
   }
-  const path = betterPath(original_path);
+  const path = betterPath(folder + original_path);
   const file = getPath(path);
   const sourceCode = readSourceCode(file);
   let module = run(sourceCode, [
     ['nombre', MK_STRING(original_path)],
-    ['folder', MK_STRING(path.split('/').slice(0, -1).join('/'))],
+    ['folder', MK_STRING(file.split('/').slice(0, -1).join('/')+'/')],
     ['archivo', MK_STRING(file)],
   ]);
   return module;

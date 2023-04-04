@@ -1,5 +1,14 @@
+import asyncToSync from '../../libs/asyncToSync.js';
 import colors from '../../libs/colors.js';
-import { getBooleano, getBuffer, getCadena, getFuncion, getLista, getNumero, getObjeto } from '../global/clases.js';
+import {
+  getBooleano,
+  getBuffer,
+  getCadena,
+  getFuncion,
+  getLista,
+  getNumero,
+  getObjeto,
+} from '../global/clases.js';
 import { AnyVal, RuntimeClassVal, RuntimeVal, ValueType } from '../values.js';
 import {
   ArrayVal,
@@ -62,18 +71,18 @@ type propsDefault = {
   };
 };
 
-export class Properties<
-  C extends AnyVal
-> extends Map<string, RuntimeVal> {
-  constructor(private val: C, entries?: [string, RuntimeVal][]) {
+export class Properties<C extends AnyVal> extends Map<string, RuntimeVal> {
+  constructor(private val: C, entries?: [string, RuntimeVal][], ofType?: Record<string, RuntimeVal>) {
     super(entries);
+    this.ofType = ofType || {};
   }
   private default: { [key: string]: RuntimeVal } = {};
+  private ofType: Record<string, RuntimeVal>;
   get<T extends C['type'], K extends keyof propsDefault[T]>(
     key: K
   ): propsDefault[T][K] {
     const k = key as string;
-    let value: any = super.get(k) || this.default[k] || defaultProps[k];
+    let value: any = super.get(k) || this.default[k] || this.ofType[k] || defaultProps[k];
     if (!value) {
       if (k === 'constructor') {
         if (this.val.type === 'funcion') value = getFuncion();
@@ -117,17 +126,21 @@ defaultProps.__pintar__ = {
     return Colors.magenta('[Valor en tiempo de ejecución]');
   },
   type: 'funcion',
-} as any
+} as any;
 
-defaultProps.__pintar__.properties = new Properties(defaultProps.__pintar__ as FunctionVal)
+defaultProps.__pintar__.properties = new Properties(
+  defaultProps.__pintar__ as FunctionVal
+);
 
 defaultProps.aCadena = {
-  execute() { },
+  execute() {},
   __pintar__() {
     return Colors.cyan('[Funcion aCadena]');
   },
-} as unknown as RuntimeVal
-defaultProps.aCadena.properties = new Properties(defaultProps.aCadena as FunctionVal)
+} as unknown as RuntimeVal;
+defaultProps.aCadena.properties = new Properties(
+  defaultProps.aCadena as FunctionVal
+);
 defaultProps.__pintar__.properties.set('__pintar__', defaultProps.__pintar__);
 defaultProps.__pintar__.properties.set('aCadena', defaultProps.aCadena);
 
@@ -228,7 +241,8 @@ export function MK_PARSE(value: any = null, name?: any): AnyVal {
   }
   if (typeof value == 'object') {
     if (value == null) return MK_NULL();
-    if (value instanceof RuntimeClassVal) return value as AnyVal;
+    if (value instanceof RuntimeClassVal || value.properties instanceof Properties) return value as AnyVal;
+    if (value instanceof Promise) return MK_PARSE(asyncToSync(value));
     if (Buffer.isBuffer(value)) return MK_BUFFER(value);
     if ((value as RuntimeVal).__native__) return value;
     if (Array.isArray(value)) return MK_ARRAY_NATIVE(...value.map(MK_PARSE));

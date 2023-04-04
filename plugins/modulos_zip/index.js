@@ -3,7 +3,10 @@ const JSZip = require('jszip');
 
 const afs = require('@agacraft/fs');
 
+const values_types = require('../../dist/runtime/values');
+
 const fs_obj = require('../../dist/libs/fs-obj').default;
+const complexValues = require('../../dist/runtime/values/complex');
 
 function getZipFolder(paths, fileC = '') {
   const next = paths.shift();
@@ -22,8 +25,31 @@ function getZipFile(paths, obj, fileName) {
   else return null
 }
 
+function fromJSZip(zip) {
+  const obj = {};
+  zip.forEach((path, file) => {
+      const paths = path.split('/');
+      let actual = obj;
+      for (let i = 0; i < paths.length; i++) {
+          const path = paths[i];
+          if (i == paths.length - 1) {
+              actual[path] = {
+                  foler: false,
+                  valor: file.async('nodebuffer'),
+              };
+          }
+          else {
+              actual[path] ||= { folder: true, valor: {} };
+              actual = actual[path].valor;
+          }
+      }
+  });
+  return obj;
+};
+
 /**
- * @param {{registerReaderFile(cb:(file:string)=>string):void, registerModule(name: string, module: any):void}} obj
+ * @param {{  registerReaderFile(cb: (file: string) => string): void, registerModule(name: string, module: values_types.AnyVal): void }
+ * } obj
  */
 module.exports = function (obj) {
   const error = message => obj.error(message, 'MODULOS ZIP');
@@ -55,4 +81,11 @@ module.exports = function (obj) {
       return await fileZip.then(a => a.toString());
     }
   );
+  obj.registerModule('zip', complexValues.MK_OBJECT({
+    leer: complexValues.MK_FUNCTION_NATIVE(async (buffer) => {
+      const zip = await JSZip.loadAsync(buffer.value);
+      return fromJSZip(zip);
+    })
+  }))
 };
+
