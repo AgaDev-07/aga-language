@@ -63,7 +63,8 @@ module.exports = function (obj) {
       const paths = filePath.split('/');
       const file = getZipFolder(paths);
 
-      if (!file.endsWith('.pagal')) return;
+      if (!file.endsWith('.pagal') && !file.endsWith('.zip')) return;
+      if (!afs.isFile(file)) return error(`No se encontro el archivo "${file}"`); 
 
       const content = fs.readFileSync(file);
 

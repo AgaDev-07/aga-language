@@ -14,7 +14,4 @@ if(file.startsWith('.')){}
 else if(file.startsWith('/')){}
 else if(/^[A-Z][:]/.test(file)){}
 
-let index = run.file(file, './')
-
-import fs from 'fs';
-fs.writeFileSync('./program.json', JSON.stringify(index[Symbol.toPrimitive], null, 2));
+let index = run.file(file)

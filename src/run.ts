@@ -1,5 +1,4 @@
 import fs from 'fs';
-import cp from 'child_process';
 
 import afs from '@agacraft/fs';
 
@@ -25,7 +24,15 @@ type FileReader = (
   obj: Record<string, string>
 ) => Promise<string> | string;
 
-const sourceCode: FileReader[] = [file => fs.readFileSync(file, 'utf-8')];
+const sourceCode: FileReader[] = [function(file:string){
+	let value;
+	try {
+		value = fs.readFileSync(file, 'utf8')
+	} catch (error) {
+		error(ErrorType.FileNotFound, 0, 0, `No se encontró el archivo '${file}'`)
+	}
+	return value;
+}];
 const readSourceCode = (file: string) => {
   for (let i = 0; i < sourceCode.length; i++) {
     const code = asyncToSync(
@@ -59,7 +66,7 @@ fs.readdirSync(__dirname + '/../plugins').forEach(file => {
 });
 
 function getDir(): string {
-  const cd = cp.execSync('cd').toString().replace(/\n|\r/g, '');
+  const cd = process.cwd();
   const dir = cd
     .split(/[\\\/]/)
     .filter(Boolean)
@@ -94,9 +101,9 @@ function getModulePath(actualDir: string, module: string): string | void {
   }
 }
 
-function betterPath(path: string): string {
+function betterPath(dir:string, path: string): string {
   let actualDir = getDir();
-  if (path.startsWith('.')) path = `${actualDir}/${path}`;
+  if (path.startsWith('.')) path = betterPath(actualDir, `${dir||'.'}/${path}`);
   else if (path.startsWith('/')) path = actualDir.split('/')[0] + path;
   else if (/^[A-Z][:]/.test(path)) {
   } else
@@ -162,7 +169,8 @@ run.file = function (original_path: string, folder: string = '') {
     const module = plugins_modules[original_path]
     return module as unknown as ModuleVal;
   }
-  const path = betterPath(folder + original_path);
+  original_path = original_path.split(/[\\\/]/).filter(Boolean).join('/');
+  const path = betterPath(folder, original_path);
   const file = getPath(path);
   const sourceCode = readSourceCode(file);
   let module = run(sourceCode, [

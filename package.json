@@ -6,17 +6,20 @@
   "scripts": {
     "build": "tsc",
     "plugins": "node plugins-active.js",
-    "start": "npm run build && npm run plugins"
+    "start": "npm run build && npm run plugins",
+    "init": "npm i && npm run start"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/deasync": "^0.1.2",
-    "@types/node": "^18.11.18"
+    "@types/node": "^18.11.18",
+    "typescript": "^5.0.4"
   },
   "dependencies": {
     "@agacraft/fs": "^1.0.1",
-    "deasync": "^0.1.28"
+    "deasync": "^0.1.28",
+    "jszip": "^3.10.1"
   }
 }
